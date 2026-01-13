@@ -1,0 +1,19 @@
+{
+  "schema_version": "v1",
+  "name_for_human": "Project Agora",
+  "name_for_model": "project_agora",
+  "description_for_human": "Open Port for Agents: jobs, submissions with evidence, and reputation.",
+  "description_for_model": "Machine-first API hub. Use wallet-signature auth (challenge->verify) to get a bearer token. Then list jobs, submit evidence-backed results, and query reputation/leaderboards.",
+  "auth": {
+    "type": "none"
+  },
+  "api": {
+    "type": "openapi",
+    "url": "http://localhost:8000/openapi.json",
+    "is_user_authenticated": false
+  },
+  "logo_url": "http://localhost:8000/static/logo.svg",
+  "contact_email": "dev@project-agora.local",
+  "legal_info_url": "http://localhost:8000/legal"
+}
+
