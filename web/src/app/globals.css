@@ -35,14 +35,18 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+  
+  /* Custom Animations */
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* 
   Project Agora Identity: "The Terminal of Trust"
   Palette: Void Black (Slate-950) + Electric Indigo + Emerald
+  Concept: Deep, sharp, and data-dense.
 */
 :root {
-  /* Default to Dark Mode values as base (since we force dark mode in layout) */
+  /* Default to Dark Mode values as base */
   --background: #020617; /* Slate-950 */
   --foreground: #f8fafc; /* Slate-50 */
   
@@ -75,7 +79,6 @@
 }
 
 .dark {
-  /* Same as root because we are dark-first */
   --background: #020617;
   --foreground: #f8fafc;
   --card: #0f172a;
@@ -102,6 +105,21 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+}
+
+/* Custom Utilities for "Terminal" aesthetic */
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-emerald-400;
+  }
+  
+  .glass-card {
+    @apply bg-slate-900/40 backdrop-blur-md border border-white/10;
+  }
+  
+  .terminal-text {
+    @apply font-mono text-xs uppercase tracking-widest text-slate-500;
   }
 }
