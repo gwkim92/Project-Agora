@@ -2,6 +2,7 @@
 
 @theme {
   --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
   --font-mono: var(--font-mono);
 
   --color-background: var(--background);
@@ -38,64 +39,65 @@
 }
 
 /* 
-  Project Agora Identity: "The Industrial Tech"
-  Palette: Solid Zinc Black + Safety Orange + Terminal Green
-  Concept: Brutalist, Functional, Machine-like.
+  Project Agora Identity: "The Digital Forum"
+  Palette: Stone, Marble, Aegean Blue, Gold
+  Concept: Intellectual, Noble, Academic, Socratic.
 */
 :root {
-  /* Dark Mode Only System */
-  --background: #09090b; /* Zinc 950 */
-  --foreground: #fafafa; /* Zinc 50 */
+  /* Light/Dark mode agnostic base (We will stick to Dark mode for now but with warmer tones) */
+  /* Stone-950 base */
+  --background: #0c0a09; 
+  --foreground: #e7e5e4; /* Stone-200 */
   
-  --card: #09090b; /* Zinc 950 */
-  --card-foreground: #fafafa; /* Zinc 50 */
+  --card: #1c1917; /* Stone-900 */
+  --card-foreground: #e7e5e4; /* Stone-200 */
   
-  --popover: #09090b; /* Zinc 950 */
-  --popover-foreground: #fafafa; /* Zinc 50 */
+  --popover: #1c1917; /* Stone-900 */
+  --popover-foreground: #e7e5e4; /* Stone-200 */
   
-  --primary: #f97316; /* Orange 500 - Safety/Action */
-  --primary-foreground: #09090b;
+  /* Aegean Blue - Knowledge & Calm */
+  --primary: #0ea5e9; /* Sky-500 mixed with Blue */
+  --primary-foreground: #ffffff;
   
-  --secondary: #27272a; /* Zinc 800 */
-  --secondary-foreground: #fafafa;
+  --secondary: #292524; /* Stone-800 */
+  --secondary-foreground: #e7e5e4;
   
-  --muted: #27272a; /* Zinc 800 */
-  --muted-foreground: #a1a1aa; /* Zinc 400 */
+  --muted: #292524; /* Stone-800 */
+  --muted-foreground: #a8a29e; /* Stone-400 */
   
-  --accent: #27272a; /* Zinc 800 */
-  --accent-foreground: #fafafa;
+  --accent: #292524; /* Stone-800 */
+  --accent-foreground: #e7e5e4;
   
-  --destructive: #ef4444;
-  --destructive-foreground: #fafafa;
+  --destructive: #7f1d1d;
+  --destructive-foreground: #e7e5e4;
   
-  --border: #27272a; /* Zinc 800 */
-  --input: #27272a; /* Zinc 800 */
-  --ring: #f97316; /* Orange 500 */
+  --border: #292524; /* Stone-800 */
+  --input: #292524; /* Stone-800 */
+  --ring: #0ea5e9; /* Sky-500 */
   
-  --radius: 0px; /* Sharp edges */
+  --radius: 0.5rem; /* Elegant rounded corners */
 }
 
-/* Enforce Dark Mode override if system is light */
 .dark {
-  --background: #09090b;
-  --foreground: #fafafa;
-  --card: #09090b;
-  --card-foreground: #fafafa;
-  --popover: #09090b;
-  --popover-foreground: #fafafa;
-  --primary: #f97316;
-  --primary-foreground: #09090b;
-  --secondary: #27272a;
-  --secondary-foreground: #fafafa;
-  --muted: #27272a;
-  --muted-foreground: #a1a1aa;
-  --accent: #27272a;
-  --accent-foreground: #fafafa;
+  --background: #0c0a09;
+  --foreground: #e7e5e4;
+  --card: #1c1917;
+  --card-foreground: #e7e5e4;
+  --popover: #1c1917;
+  --popover-foreground: #e7e5e4;
+  --primary: #38bdf8; /* Sky-400 - Lighter for dark mode */
+  --primary-foreground: #0c0a09;
+  --secondary: #292524;
+  --secondary-foreground: #e7e5e4;
+  --muted: #292524;
+  --muted-foreground: #a8a29e;
+  --accent: #292524;
+  --accent-foreground: #e7e5e4;
   --destructive: #7f1d1d;
-  --destructive-foreground: #fafafa;
-  --border: #27272a;
-  --input: #27272a;
-  --ring: #f97316;
+  --destructive-foreground: #e7e5e4;
+  --border: #292524;
+  --input: #292524;
+  --ring: #38bdf8;
 }
 
 @layer base {
@@ -105,17 +107,17 @@
   body {
     @apply bg-background text-foreground antialiased font-sans;
   }
+  /* Headings use Serif for intellectual authority */
   h1, h2, h3, h4, h5, h6 {
-    @apply font-mono tracking-tight;
+    @apply font-serif tracking-tight font-medium;
   }
 }
 
 @layer utilities {
-  .mono-box {
-    @apply border border-border bg-secondary/30 px-2 py-0.5 text-xs font-mono text-muted-foreground;
+  .gold-text {
+    @apply text-yellow-500/90;
   }
-  
-  .tech-border {
-    @apply border border-border hover:border-primary/50 transition-colors duration-300;
+  .marble-border {
+    @apply border border-stone-700/50;
   }
 }
