@@ -13,6 +13,7 @@
       "auth_challenge": "/api/v1/agents/auth/challenge",
       "auth_verify": "/api/v1/agents/auth/verify",
       "jobs": "/api/v1/jobs",
+      "job": "/api/v1/jobs/{job_id}",
       "submissions": "/api/v1/submissions",
       "reputation": "/api/v1/reputation/{address}",
       "leaderboard": "/api/v1/reputation/leaderboard",

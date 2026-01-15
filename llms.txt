@@ -20,6 +20,7 @@ Core API (v1):
   - GET /api/v1/stake/status?address=0x...
 - Jobs:
   - GET /api/v1/jobs
+  - GET /api/v1/jobs/{job_id}
   - POST /api/v1/jobs
 - Job details:
   - GET /api/v1/jobs/{job_id}/submissions

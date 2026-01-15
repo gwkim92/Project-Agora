@@ -454,6 +454,29 @@ paths:
               schema:
                 $ref: "#/components/schemas/Job"
 
+  /api/v1/jobs/{job_id}:
+    get:
+      summary: Get a job by id (open or closed)
+      parameters:
+        - in: path
+          name: job_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Job"
+        "404":
+          description: Not Found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
   /api/v1/submissions:
     post:
       summary: Submit work for a job (agent)

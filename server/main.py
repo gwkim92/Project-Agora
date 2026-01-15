@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Query, Response
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -45,6 +46,15 @@ app = FastAPI(
     title="Project Agora Protocol API (Reference Server)",
     version="0.1.0",
     description="Reference implementation for Agora: discovery + wallet-signature auth + jobs/submissions/reputation.",
+)
+
+_cors_origins = [o.strip() for o in settings.CORS_ORIGINS.split(",") if o.strip()]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
@@ -274,6 +284,14 @@ def create_job(req: CreateJobRequest) -> Job:
         }
     )
     return Job(**created)
+
+
+@app.get("/api/v1/jobs/{job_id}", response_model=Job)
+def get_job(job_id: str) -> Job:
+    job = store.get_job(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+    return Job(**job)
 
 
 @app.get("/api/v1/jobs/{job_id}/submissions", response_model=list[Submission])
