@@ -35,69 +35,67 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
-  
-  /* Custom Animations */
-  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 
 /* 
-  Project Agora Identity: "The Terminal of Trust"
-  Palette: Void Black (Slate-950) + Electric Indigo + Emerald
-  Concept: Deep, sharp, and data-dense.
+  Project Agora Identity: "The Industrial Tech"
+  Palette: Solid Zinc Black + Safety Orange + Terminal Green
+  Concept: Brutalist, Functional, Machine-like.
 */
 :root {
-  /* Default to Dark Mode values as base */
-  --background: #020617; /* Slate-950 */
-  --foreground: #f8fafc; /* Slate-50 */
+  /* Dark Mode Only System */
+  --background: #09090b; /* Zinc 950 */
+  --foreground: #fafafa; /* Zinc 50 */
   
-  --card: #0f172a; /* Slate-900 */
-  --card-foreground: #f8fafc; /* Slate-50 */
+  --card: #09090b; /* Zinc 950 */
+  --card-foreground: #fafafa; /* Zinc 50 */
   
-  --popover: #0f172a; /* Slate-900 */
-  --popover-foreground: #f8fafc; /* Slate-50 */
+  --popover: #09090b; /* Zinc 950 */
+  --popover-foreground: #fafafa; /* Zinc 50 */
   
-  --primary: #6366f1; /* Indigo-500 */
-  --primary-foreground: #ffffff;
+  --primary: #f97316; /* Orange 500 - Safety/Action */
+  --primary-foreground: #09090b;
   
-  --secondary: #1e293b; /* Slate-800 */
-  --secondary-foreground: #f8fafc; /* Slate-50 */
+  --secondary: #27272a; /* Zinc 800 */
+  --secondary-foreground: #fafafa;
   
-  --muted: #1e293b; /* Slate-800 */
-  --muted-foreground: #94a3b8; /* Slate-400 */
+  --muted: #27272a; /* Zinc 800 */
+  --muted-foreground: #a1a1aa; /* Zinc 400 */
   
-  --accent: #1e293b; /* Slate-800 */
-  --accent-foreground: #f8fafc; /* Slate-50 */
+  --accent: #27272a; /* Zinc 800 */
+  --accent-foreground: #fafafa;
   
-  --destructive: #ef4444; /* Red-500 */
-  --destructive-foreground: #ffffff;
+  --destructive: #ef4444;
+  --destructive-foreground: #fafafa;
   
-  --border: #1e293b; /* Slate-800 */
-  --input: #1e293b; /* Slate-800 */
-  --ring: #6366f1; /* Indigo-500 */
+  --border: #27272a; /* Zinc 800 */
+  --input: #27272a; /* Zinc 800 */
+  --ring: #f97316; /* Orange 500 */
   
-  --radius: 0.3rem; /* Sharper corners for terminal look */
+  --radius: 0px; /* Sharp edges */
 }
 
+/* Enforce Dark Mode override if system is light */
 .dark {
-  --background: #020617;
-  --foreground: #f8fafc;
-  --card: #0f172a;
-  --card-foreground: #f8fafc;
-  --popover: #0f172a;
-  --popover-foreground: #f8fafc;
-  --primary: #6366f1;
-  --primary-foreground: #ffffff;
-  --secondary: #1e293b;
-  --secondary-foreground: #f8fafc;
-  --muted: #1e293b;
-  --muted-foreground: #94a3b8;
-  --accent: #1e293b;
-  --accent-foreground: #f8fafc;
+  --background: #09090b;
+  --foreground: #fafafa;
+  --card: #09090b;
+  --card-foreground: #fafafa;
+  --popover: #09090b;
+  --popover-foreground: #fafafa;
+  --primary: #f97316;
+  --primary-foreground: #09090b;
+  --secondary: #27272a;
+  --secondary-foreground: #fafafa;
+  --muted: #27272a;
+  --muted-foreground: #a1a1aa;
+  --accent: #27272a;
+  --accent-foreground: #fafafa;
   --destructive: #7f1d1d;
-  --destructive-foreground: #f8fafc;
-  --border: #1e293b;
-  --input: #1e293b;
-  --ring: #6366f1;
+  --destructive-foreground: #fafafa;
+  --border: #27272a;
+  --input: #27272a;
+  --ring: #f97316;
 }
 
 @layer base {
@@ -105,21 +103,19 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground antialiased;
+    @apply bg-background text-foreground antialiased font-sans;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-mono tracking-tight;
   }
 }
 
-/* Custom Utilities for "Terminal" aesthetic */
 @layer utilities {
-  .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-indigo-400 to-emerald-400;
+  .mono-box {
+    @apply border border-border bg-secondary/30 px-2 py-0.5 text-xs font-mono text-muted-foreground;
   }
   
-  .glass-card {
-    @apply bg-slate-900/40 backdrop-blur-md border border-white/10;
-  }
-  
-  .terminal-text {
-    @apply font-mono text-xs uppercase tracking-widest text-slate-500;
+  .tech-border {
+    @apply border border-border hover:border-primary/50 transition-colors duration-300;
   }
 }

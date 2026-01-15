@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
-import { Activity, BookOpen, Compass, PlusCircle, Terminal, User, Bot, LayoutDashboard } from "lucide-react";
+import { Activity, BookOpen, Compass, PlusCircle, Terminal, User, Bot, Server } from "lucide-react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -18,17 +18,17 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Project Agora | The Terminal of Trust",
-  description: "Digital Port for Autonomous Agents. Algorithmically verified trust and reputation.",
+  title: "Project Agora | Industrial Intelligence Network",
+  description: "Decentralized harbor for autonomous agents. Validation, Execution, and Settlement.",
 };
 
 function NavLink({ href, icon: Icon, children }: { href: string; icon: any; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className="group flex items-center gap-2 rounded-md px-3 py-1.5 text-[11px] font-mono uppercase tracking-wider text-slate-500 hover:bg-slate-900 hover:text-indigo-400 transition-all duration-200 border border-transparent hover:border-slate-800"
+      className="group flex items-center gap-2 px-4 py-2 text-xs font-mono uppercase tracking-wider text-muted-foreground hover:bg-secondary hover:text-primary transition-colors border-r border-transparent hover:border-primary/20 last:border-r-0"
     >
-      <Icon className="h-3.5 w-3.5 transition-colors group-hover:text-indigo-400" />
+      <Icon className="h-3.5 w-3.5 transition-colors group-hover:text-primary" />
       {children}
     </Link>
   );
@@ -42,62 +42,81 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className={cn(
-        "min-h-screen bg-background font-sans antialiased selection:bg-indigo-500/30 selection:text-indigo-200",
+        "min-h-screen bg-background font-sans antialiased selection:bg-primary/20 selection:text-primary",
         inter.variable,
         jetbrainsMono.variable
       )}>
-        {/* Background Grid */}
-        <div className="fixed inset-0 z-[-1] bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:3rem_3rem] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-[0.07]" />
+        {/* Tech Grid Overlay */}
+        <div className="fixed inset-0 z-[-1] pointer-events-none opacity-[0.03]" 
+             style={{ backgroundImage: 'linear-gradient(#333 1px, transparent 1px), linear-gradient(90deg, #333 1px, transparent 1px)', backgroundSize: '40px 40px' }}>
+        </div>
         
-        <div className="relative flex min-h-screen flex-col">
-          <header className="sticky top-0 z-50 w-full border-b border-slate-800/50 bg-background/90 backdrop-blur-md">
-            <div className="container flex h-14 items-center px-4 md:px-8 max-w-7xl mx-auto">
+        <div className="relative flex min-h-screen flex-col border-x border-border max-w-[1600px] mx-auto shadow-2xl">
+          {/* Top Status Bar */}
+          <div className="h-1 bg-primary w-full" />
+          
+          <header className="sticky top-0 z-50 w-full border-b border-border bg-background/95 backdrop-blur-sm">
+            <div className="flex h-14 items-center px-6">
               <div className="flex items-center gap-8 w-full">
-                <Link href="/" className="flex items-center space-x-2.5">
-                  <div className="flex h-8 w-8 items-center justify-center rounded bg-indigo-500/10 border border-indigo-500/20 shadow-[0_0_15px_rgba(99,102,241,0.1)]">
-                    <Terminal className="h-4 w-4 text-indigo-400" />
+                <Link href="/" className="flex items-center gap-3 mr-4">
+                  <div className="bg-primary/10 border border-primary/30 p-1.5">
+                    <Terminal className="h-5 w-5 text-primary" />
                   </div>
-                  <span className="font-mono text-sm font-bold tracking-widest text-slate-100 uppercase">
-                    AGORA<span className="text-indigo-500">_TERMINAL</span>
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="font-mono text-sm font-bold tracking-widest text-foreground uppercase leading-none">
+                      Agora<span className="text-primary">.OS</span>
+                    </span>
+                    <span className="text-[10px] text-muted-foreground font-mono uppercase tracking-widest">
+                      Protocol v1.5
+                    </span>
+                  </div>
                 </Link>
                 
-                <nav className="hidden md:flex items-center gap-1 flex-1">
-                  <NavLink href="/explore" icon={Compass}>Explore</NavLink>
-                  <NavLink href="/quests/new" icon={PlusCircle}>Create</NavLink>
-                  <div className="h-4 w-px bg-slate-800 mx-2" />
-                  <NavLink href="/how-it-works" icon={BookOpen}>Method</NavLink>
-                  <NavLink href="/sponsor-guide" icon={User}>Sponsor</NavLink>
-                  <NavLink href="/agent-guide" icon={Bot}>Agent</NavLink>
+                <nav className="hidden md:flex items-center border-l border-border h-full">
+                  <NavLink href="/explore" icon={Compass}>Terminal</NavLink>
+                  <NavLink href="/quests/new" icon={PlusCircle}>New Ops</NavLink>
+                  <NavLink href="/how-it-works" icon={Server}>System</NavLink>
                 </nav>
 
-                <div className="flex items-center gap-4">
+                <div className="flex-1" />
+
+                <div className="flex items-center gap-6">
+                  <div className="hidden lg:flex items-center gap-4 text-[10px] font-mono uppercase text-muted-foreground">
+                    <span className="flex items-center gap-1.5">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-sm animate-pulse" />
+                      Mainnet: Active
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Activity className="h-3 w-3" />
+                      Gas: 12 Gwei
+                    </span>
+                  </div>
                   <a
                     href="http://127.0.0.1:8000/docs"
                     target="_blank"
                     rel="noreferrer"
-                    className="hidden lg:flex items-center gap-2 rounded px-3 py-1 text-[10px] font-mono uppercase tracking-widest text-slate-500 hover:text-indigo-400 transition-colors"
+                    className="flex items-center gap-2 border border-border px-3 py-1.5 text-[10px] font-mono uppercase hover:bg-secondary hover:text-primary transition-colors"
                   >
-                    <Activity className="h-3 w-3" />
-                    API_CORE
+                    API Gateway
                   </a>
-                  <div className="h-8 w-8 rounded-full border border-slate-800 bg-slate-900 flex items-center justify-center">
-                    <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  </div>
                 </div>
               </div>
             </div>
           </header>
 
-          <main className="flex-1 container px-4 py-8 md:px-8 max-w-7xl mx-auto">{children}</main>
+          <main className="flex-1 w-full bg-background relative">
+            {children}
+          </main>
           
-          <footer className="border-t border-slate-800/50 py-6">
-            <div className="container px-4 md:px-8 max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="text-[10px] font-mono uppercase text-slate-600 tracking-tighter">
-                System Status: <span className="text-emerald-500">Operational</span> // Latency: 12ms // Protocol: v1.5.2
+          <footer className="border-t border-border bg-secondary/10 py-8">
+            <div className="px-6 flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="text-[10px] font-mono uppercase text-muted-foreground tracking-widest">
+                Agora Protocol Initiative © 2026 // Distributed Intelligence Grid
               </div>
-              <div className="text-[10px] font-mono uppercase text-slate-600 tracking-tighter">
-                Project Agora © 2026 // Decentralized Republic for Algorithms
+              <div className="flex gap-6 text-[10px] font-mono uppercase text-muted-foreground">
+                <Link href="/governance" className="hover:text-primary">Constitution</Link>
+                <Link href="/status" className="hover:text-primary">Node Status</Link>
+                <Link href="/terms" className="hover:text-primary">Legal</Link>
               </div>
             </div>
           </footer>
