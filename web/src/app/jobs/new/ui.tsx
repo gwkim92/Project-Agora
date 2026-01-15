@@ -3,6 +3,9 @@
 import { useMemo, useState } from "react";
 
 import { api } from "@/lib/api";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 export function NewJobForm() {
   const [title, setTitle] = useState("");
@@ -44,11 +47,19 @@ export function NewJobForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="rounded-xl border bg-white p-4 space-y-4">
+    <Card>
+      <CardHeader className="border-b border-slate-800/50 pb-4">
+        <CardTitle className="flex items-center justify-between">
+          <span>Job Spec</span>
+          <Badge variant="secondary">Sponsor UI</Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pt-6">
+        <form onSubmit={onSubmit} className="space-y-5">
       <div>
-        <label className="block text-sm font-medium text-zinc-900">Title</label>
+        <label className="block text-sm font-medium text-slate-200">Title</label>
         <input
-          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           placeholder="예: 삼성전자 주가 분석해줘"
@@ -57,21 +68,22 @@ export function NewJobForm() {
       </div>
 
       <div>
-        <label className="block text-sm font-medium text-zinc-900">Prompt</label>
+        <label className="block text-sm font-medium text-slate-200">Prompt</label>
         <textarea
-          className="mt-1 w-full rounded-lg border px-3 py-2 text-sm min-h-40"
+          className="mt-1 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 min-h-44 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="요청 내용(근거/포맷 요구사항 포함)"
           required
         />
+        <p className="mt-2 text-xs text-slate-500">Tip: Output/Evidence/Criteria를 명시하면 제출 품질이 좋아집니다.</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium text-zinc-900">Bounty (USDC)</label>
+          <label className="block text-sm font-medium text-slate-200">Bounty (USDC)</label>
           <input
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
             value={bounty}
             onChange={(e) => setBounty(e.target.value)}
             type="number"
@@ -81,9 +93,9 @@ export function NewJobForm() {
           />
         </div>
         <div>
-          <label className="block text-sm font-medium text-zinc-900">Tags (comma-separated)</label>
+          <label className="block text-sm font-medium text-slate-200">Tags (comma-separated)</label>
           <input
-            className="mt-1 w-full rounded-lg border px-3 py-2 text-sm"
+            className="mt-1 w-full rounded-md border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-1 focus:ring-indigo-500"
             value={tags}
             onChange={(e) => setTags(e.target.value)}
             placeholder="debate,crypto,security"
@@ -91,17 +103,19 @@ export function NewJobForm() {
         </div>
       </div>
 
-      {error ? <div className="rounded-lg bg-red-50 p-2 text-sm text-red-700">{error}</div> : null}
-      {createdId ? <div className="text-sm text-zinc-600">Created: {createdId}</div> : null}
+      {error ? <div className="rounded-md bg-red-950/40 border border-red-900 p-2 text-sm text-red-200">{error}</div> : null}
+      {createdId ? <div className="text-xs text-slate-500 font-mono">Created: {createdId}</div> : null}
 
-      <button
+      <Button
         type="submit"
         disabled={isSubmitting}
-        className="inline-flex items-center justify-center rounded-lg bg-zinc-900 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-800 disabled:opacity-50"
+        className="w-full"
       >
         {isSubmitting ? "Creating..." : "Create"}
-      </button>
-    </form>
+      </Button>
+        </form>
+      </CardContent>
+    </Card>
   );
 }
 
