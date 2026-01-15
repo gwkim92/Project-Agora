@@ -431,6 +431,19 @@ paths:
   /api/v1/jobs:
     get:
       summary: List open jobs
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [open, all]
+            default: open
+        - in: query
+          name: tag
+          required: false
+          schema:
+            type: string
       responses:
         "200":
           description: OK

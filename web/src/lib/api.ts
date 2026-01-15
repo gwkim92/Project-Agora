@@ -25,7 +25,13 @@ async function postJson<T>(path: string, body: unknown): Promise<T> {
 export const api = {
   economyPolicy: () => getJson<EconomyPolicy>("/api/v1/economy/policy"),
   constitution: () => getJson<Constitution>("/api/v1/governance/constitution"),
-  listJobs: () => getJson<ListJobsResponse>("/api/v1/jobs"),
+  listJobs: (opts?: { tag?: string; status?: "open" | "all" }) => {
+    const params = new URLSearchParams();
+    if (opts?.tag) params.set("tag", opts.tag);
+    if (opts?.status) params.set("status", opts.status);
+    const qs = params.toString();
+    return getJson<ListJobsResponse>(`/api/v1/jobs${qs ? `?${qs}` : ""}`);
+  },
   getJob: (jobId: string) => getJson<Job>(`/api/v1/jobs/${jobId}`),
   createJob: (req: { title: string; prompt: string; bounty_usdc: number; tags: string[] }) =>
     postJson<Job>("/api/v1/jobs", req),

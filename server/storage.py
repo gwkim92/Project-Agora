@@ -95,11 +95,22 @@ class InMemoryStore:
         self.jobs[job_id] = job
         return job
 
-    def list_jobs(self) -> list[dict]:
-        # simple: return open jobs newest-first
+    def list_jobs(self, *, status: str = "open", tag: str | None = None) -> list[dict]:
+        """
+        status: 'open' or 'all'
+        tag: optional tag filter
+        """
         jobs = list(self.jobs.values())
         jobs.sort(key=lambda j: j.get("created_at", ""), reverse=True)
-        return [j for j in jobs if j.get("status") == "open"]
+
+        if status != "all":
+            jobs = [j for j in jobs if j.get("status") == "open"]
+
+        if tag:
+            t = tag.strip().lower()
+            jobs = [j for j in jobs if any(str(x).lower() == t for x in (j.get("tags") or []))]
+
+        return jobs
 
     def get_job(self, job_id: str) -> dict | None:
         return self.jobs.get(job_id)

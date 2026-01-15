@@ -266,8 +266,13 @@ def dev_set_stake(
 
 # ---- Jobs ----
 @app.get("/api/v1/jobs", response_model=ListJobsResponse)
-def list_jobs() -> ListJobsResponse:
-    jobs = [Job(**j) for j in store.list_jobs()]
+def list_jobs(
+    status: str = Query("open", description="open|all"),
+    tag: str | None = Query(None, description="optional tag filter"),
+) -> ListJobsResponse:
+    if status not in ("open", "all"):
+        raise HTTPException(status_code=400, detail="Invalid status (open|all)")
+    jobs = [Job(**j) for j in store.list_jobs(status=status, tag=tag)]
     return ListJobsResponse(jobs=jobs)
 
 

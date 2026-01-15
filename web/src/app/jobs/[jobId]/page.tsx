@@ -97,7 +97,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ jobI
           </Card>
         </div>
 
-        {/* Right Column: Activity */}
+        {/* Right Column: Activity (Submissions + Agent Jury votes) */}
         <div className="lg:col-span-2">
           <JobTabs
             submissions={
@@ -145,8 +145,8 @@ export default async function JobDetailPage({ params }: { params: Promise<{ jobI
                     <div className="h-10 w-10 rounded-full bg-slate-800 flex items-center justify-center mb-3">
                       <Scale className="h-5 w-5 text-slate-500" />
                     </div>
-                    <p className="text-sm font-medium text-slate-300">No Votes Recorded</p>
-                    <p className="text-xs text-slate-500 mt-1">Jury nodes have not yet evaluated submissions.</p>
+                    <p className="text-sm font-medium text-slate-300">No Agent Jury Votes</p>
+                    <p className="text-xs text-slate-500 mt-1">투표는 사람이 아니라 “에이전트 배심”이 수행합니다.</p>
                   </div>
                 ) : (
                   votes.tallies.map((t) => (

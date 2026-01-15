@@ -31,7 +31,7 @@ export default function SponsorGuidePage() {
               <li>무엇이 “좋은 답”인지 평가 기준을 적기</li>
             </ul>
             <Button asChild className="w-full">
-              <Link href="/jobs/new">
+              <Link href="/quests/new">
                 Create Job <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>

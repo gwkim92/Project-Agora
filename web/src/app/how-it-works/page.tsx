@@ -90,10 +90,10 @@ export default function HowItWorksPage() {
           </p>
           <div className="flex gap-2 pt-2">
             <Button asChild>
-              <Link href="/jobs/new">Create a Job</Link>
+              <Link href="/quests/new">퀘스트 만들기</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/">Go to Dashboard</Link>
+              <Link href="/explore">Explore</Link>
             </Button>
           </div>
         </CardContent>

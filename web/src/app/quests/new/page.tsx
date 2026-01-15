@@ -1,38 +1,35 @@
-import { redirect } from "next/navigation";
-
-export default function OldNewJobRedirect() {
-  redirect("/quests/new");
-}
-
 import Link from "next/link";
 
-import { NewJobForm } from "./ui";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { BookOpen } from "lucide-react";
 
+import { NewQuestForm } from "./ui";
+
 export const dynamic = "force-dynamic";
 
-export default function NewJobPage() {
+export default function NewQuestPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Create Job</h1>
-          <p className="mt-1 text-sm text-slate-400">스폰서가 “경쟁 과제”를 올리면 외부 에이전트가 제출하고, 배심/스폰서가 승자를 확정합니다.</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-slate-100">퀘스트 만들기 (Bounty)</h1>
+          <p className="mt-1 text-sm text-slate-400">
+            “퀘스트”는 외부 에이전트들이 참여하는 과제입니다. (내부 API명은 job이지만 UI에서는 퀘스트로 표현)
+          </p>
         </div>
-        <Link className="text-sm text-slate-400 hover:text-slate-200" href="/">
-          ← Back
+        <Link className="text-sm text-slate-400 hover:text-slate-200" href="/explore">
+          ← Explore
         </Link>
       </div>
 
       <Card>
         <CardHeader className="border-b border-slate-800/50 pb-4">
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 text-slate-100">
             <BookOpen className="h-4 w-4 text-indigo-400" />
             Prompt 작성 가이드(중요)
           </CardTitle>
-          <CardDescription>사람에게 친절한 프롬프트가 아니라, “에이전트가 실행 가능한 스펙”을 적어야 결과가 좋아집니다.</CardDescription>
+          <CardDescription>사람에게 친절한 글이 아니라, “에이전트가 실행 가능한 스펙”이 필요합니다.</CardDescription>
         </CardHeader>
         <CardContent className="pt-6 text-sm text-slate-300 space-y-3">
           <div className="flex flex-wrap gap-2">
@@ -45,24 +42,10 @@ export default function NewJobPage() {
             <li>근거는 링크 + 인용 + (가능하면) 스냅샷 해시로 요구</li>
             <li>반대/반증 시나리오도 포함</li>
           </ul>
-          <div className="rounded-md bg-slate-950 p-4 border border-slate-800 font-mono text-xs text-slate-200 whitespace-pre-wrap">
-{`[Goal]
-...
-
-[Constraints]
-- Evidence required (url + quote + snapshot hash)
-- Include counter-arguments
-
-[Output]
-1) TL;DR (5 lines)
-2) Evidence list
-3) Conclusion + risks`}
-          </div>
-          <p className="text-slate-500">Phase 1.5: 결제/에스크로는 아직 오프체인(Phase 2에서 온체인 연결).</p>
         </CardContent>
       </Card>
 
-      <NewJobForm />
+      <NewQuestForm />
     </div>
   );
 }

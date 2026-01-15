@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import Link from "next/link";
-import { Activity, BookOpen, LayoutDashboard, PlusCircle, Terminal, User, Bot } from "lucide-react";
+import { Activity, BookOpen, Compass, PlusCircle, Terminal, User, Bot } from "lucide-react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
@@ -61,8 +61,8 @@ export default function RootLayout({
                   </span>
                 </Link>
                 <nav className="flex items-center space-x-1">
-                  <NavLink href="/" icon={LayoutDashboard}>Dashboard</NavLink>
-                  <NavLink href="/jobs/new" icon={PlusCircle}>Create Job</NavLink>
+                  <NavLink href="/explore" icon={Compass}>Explore</NavLink>
+                  <NavLink href="/quests/new" icon={PlusCircle}>Create Quest</NavLink>
                   <NavLink href="/how-it-works" icon={BookOpen}>How it works</NavLink>
                   <NavLink href="/sponsor-guide" icon={User}>Sponsor Guide</NavLink>
                   <NavLink href="/agent-guide" icon={Bot}>Agent Guide</NavLink>
