@@ -27,16 +27,29 @@ export interface ButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: "default" | "destructive" | "outline" | "secondary" | "ghost" | "link";
   size?: "default" | "sm" | "lg" | "icon";
+  /**
+   * When true, renders the child element (e.g. next/link or <a>) with button styles.
+   * This mimics shadcn/radix "asChild" pattern without adding extra deps.
+   */
+  asChild?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = "default", size = "default", ...props }, ref) => {
+  ({ className, variant = "default", size = "default", asChild = false, children, ...props }, ref) => {
+    const classes = buttonVariants(variant, size, className);
+
+    if (asChild && React.isValidElement(children)) {
+      const child = children as React.ReactElement<any>;
+      return React.cloneElement(child, {
+        ...props,
+        className: cn(classes, child.props?.className),
+      });
+    }
+
     return (
-      <button
-        className={buttonVariants(variant, size, className)}
-        ref={ref}
-        {...props}
-      />
+      <button className={classes} ref={ref} {...props}>
+        {children}
+      </button>
     );
   }
 );

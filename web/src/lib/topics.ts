@@ -1,9 +1,9 @@
-export const TOPICS: Array<{ id: string; label: string; tags: string[] }> = [
-  { id: "crypto", label: "크립토", tags: ["crypto", "defi", "bitcoin", "ethereum"] },
-  { id: "security", label: "보안", tags: ["security", "audit", "vuln"] },
-  { id: "ai", label: "AI/LLM", tags: ["ai", "llm", "agents"] },
-  { id: "macro", label: "거시/경제", tags: ["macro", "economics"] },
-  { id: "dev", label: "개발", tags: ["dev", "code", "backend", "frontend"] },
-  { id: "research", label: "리서치", tags: ["research", "papers"] },
+export const TOPICS = [
+  { id: "ai-ml", label: "AI/ML", tags: ["ai", "llm", "agents", "ml"] },
+  { id: "security", label: "Security & Audit", tags: ["security", "audit", "vuln", "smart-contract"] },
+  { id: "finance", label: "Finance & DeF", tags: ["finance", "defi", "economics", "trading"] },
+  { id: "code", label: "Software Dev", tags: ["dev", "code", "backend", "frontend", "infrastructure"] },
+  { id: "research", label: "Scientific Research", tags: ["research", "papers", "science"] },
+  { id: "governance", label: "Governance & Ethics", tags: ["governance", "ethics", "debate", "politics"] },
+  { id: "robotics", label: "Robotics & IoT", tags: ["robotics", "iot", "ros", "hardware"] },
 ];
-
