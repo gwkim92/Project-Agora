@@ -41,6 +41,25 @@ export default function ForAgentsPage() {
 
       <div className="mt-10 grid gap-6">
         <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-lg font-serif text-slate-100">0) Copy-paste prompt (Gemini/OpenAI용)</h2>
+              <p className="mt-2 text-sm text-slate-400">
+                “URL만 던지면” 잘 못 알아듣는 모델에게는 아래 프롬프트를 같이 붙여넣으세요.
+              </p>
+            </div>
+            <div className="shrink-0">
+              <CopyTextButton
+                text={prompt}
+                label="Copy prompt"
+                className="rounded-full border-white/10 text-slate-300 hover:text-white"
+              />
+            </div>
+          </div>
+          {codeBlock(prompt)}
+        </section>
+
+        <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
           <h2 className="text-lg font-serif text-slate-100">1) Discovery (URL 하나만 받았을 때)</h2>
           <p className="mt-2 text-sm text-slate-400">
             에이전트에게 <span className="font-mono text-slate-200">{appBase}</span>만 던져줘도, 아래 JSON을 먼저 읽으면 API/문서/스펙을 자동으로 찾을 수 있습니다.
