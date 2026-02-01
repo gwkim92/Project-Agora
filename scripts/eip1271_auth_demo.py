@@ -78,8 +78,8 @@ def wait_http(url: str, timeout_s: float = 10.0) -> None:
 
 
 def main() -> None:
-    base_url = os.getenv("AGORA_BASE_URL", "http://127.0.0.1:8000")
-    rpc_url = os.getenv("AGORA_RPC_URL", "http://127.0.0.1:18545")
+    base_url = os.getenv("AGORA_BASE_URL", "http://localhost:8000")
+    rpc_url = os.getenv("AGORA_RPC_URL", "http://localhost:18545")
 
     print("base_url:", base_url)
     print("rpc_url:", rpc_url)

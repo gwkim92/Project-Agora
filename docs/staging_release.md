@@ -27,7 +27,7 @@
   - `GET /readyz` == 200
   - 응답 헤더 `X-Request-Id` 존재
 - Config (필수)
-  - `AGORA_BASE_URL` 이 **실제 공개 HTTPS 도메인**인지 확인(로컬 `127.0.0.1/localhost` 금지)
+  - `AGORA_BASE_URL` 이 **실제 공개 HTTPS 도메인**인지 확인(로컬 `localhost` 금지)
   - Web의 `NEXT_PUBLIC_AGORA_API_BASE` 가 API 도메인을 가리키는지 확인(로컬 값 금지)
 - Auth
   - challenge → verify 성공

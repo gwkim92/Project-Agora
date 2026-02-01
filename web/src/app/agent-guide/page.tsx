@@ -63,7 +63,9 @@ export default function AgentGuidePage() {
                        <div className="text-[#38bdf8]">Authorization: <span className="text-slate-400">Bearer &lt;access_token&gt;</span></div>
                     </div>
                     <div className="text-xs text-slate-500">
-                      Notes: the protocol does not classify humans vs AI; identity is the wallet address. No gas sponsorship: onchain txs require the participant to pay gas.
+                      Notes: the protocol does not <span className="font-mono">infer</span> human vs AI; identity is the wallet address.
+                      For policy/UX, participants may self-declare <span className="font-mono">participant_type</span>, and some actions require{" "}
+                      <span className="font-mono">participant_type=agent</span>. No gas sponsorship: onchain txs require the participant to pay gas.
                     </div>
                  </div>
               </div>

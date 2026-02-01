@@ -94,7 +94,7 @@ npm run dev
 ### 2) 웹이 바라보는 API 설정
 
 - `local.env.example`를 참고해 `local.env`를 만든 뒤, 웹을 실행하기 전에 아래 환경변수를 설정합니다.
-- 기본값은 `http://127.0.0.1:8000`을 가정합니다.
+- 기본값은 `https://api.project-agora.im`을 가정합니다. (로컬 테스트 시 `AGORA_API_BASE`/`NEXT_PUBLIC_AGORA_API_BASE`로 덮어쓰기)
 
 > Next.js는 기본적으로 `web/.env.local` 등을 로드합니다.  
 > 로컬에서 빠르게 맞추려면 `NEXT_PUBLIC_*` 값은 `web/.env.local`에도 동일하게 넣어두는 걸 추천합니다.
@@ -117,7 +117,7 @@ npm run dev
 레퍼런스 서버는 기본적으로 아래 오리진을 허용합니다.
 
 - `http://localhost:3000`
-- `http://127.0.0.1:3000`
+ - `http://localhost:3000`
 
 필요하면 `AGORA_CORS_ORIGINS` 환경변수로 변경합니다.
 

@@ -8,9 +8,9 @@
 
 - **Docker Desktop**: 실행 중이어야 합니다(데몬 필요).
 - 기본 포트:
-  - **API**: `127.0.0.1:8000`
-  - **Web(UI)**: `127.0.0.1:3000`
-  - **Postgres(전용)**: `127.0.0.1:6543` (다른 프로젝트와 충돌을 피하려는 비표준 포트)
+  - **API**: `localhost:8000`
+  - **Web(UI)**: `localhost:3000`
+  - **Postgres(전용)**: `localhost:6543` (다른 프로젝트와 충돌을 피하려는 비표준 포트)
 
 ## 0) 로컬 환경 변수 파일
 
@@ -25,12 +25,12 @@ cp local.env.example local.env
 
 `local.env`에 아래를 채우세요:
 
-- **DATABASE_URL**: `postgresql+psycopg://agora:agora@127.0.0.1:6543/agora`
+- **DATABASE_URL**: `postgresql+psycopg://agora:agora@localhost:6543/agora`
 - **AGORA_ENABLE_DEV_ENDPOINTS**: `1` (로컬 데모/테스트용)
 - **AGORA_DEV_SECRET**: `<set-a-random-secret>` (반드시 랜덤/비공개로 설정)
 - **AGORA_RATE_LIMIT_PER_MIN**: 기본 300
 - (옵션) **AGORA_AUTH_EIP1271_ENABLED**: `1`이면 컨트랙트 월렛(멀티시그/스마트월렛) 로그인(EIP-1271) 허용
-- (옵션) **AGORA_RPC_URL**: EIP-1271 검증 및 온체인 stake 조회에 사용 (예: `http://127.0.0.1:18545`)
+- (옵션) **AGORA_RPC_URL**: EIP-1271 검증 및 온체인 stake 조회에 사용 (예: `http://localhost:18545`)
 
 > `local.env`는 `.gitignore`에 포함되어 커밋되지 않습니다.
 
@@ -44,7 +44,7 @@ docker run -d \
   -e POSTGRES_USER=agora \
   -e POSTGRES_PASSWORD=agora \
   -e POSTGRES_DB=agora \
-  -p 127.0.0.1:6543:5432 \
+  -p 6543:5432 \
   -v agora_pgdata_phase15:/var/lib/postgresql/data \
   postgres:15-alpine
 ```
@@ -71,13 +71,13 @@ alembic upgrade head
 ```bash
 cd <repo_root>
 source .venv/bin/activate
-uvicorn server.main:app --reload --host 127.0.0.1 --port 8000
+uvicorn server.main:app --reload --host localhost --port 8000
 ```
 
 체크:
 
-- `GET http://127.0.0.1:8000/healthz` → `200 ok`
-- `GET http://127.0.0.1:8000/readyz` → DB 연결 OK면 `200 ok`
+- `GET http://localhost:8000/healthz` → `200 ok`
+- `GET http://localhost:8000/readyz` → DB 연결 OK면 `200 ok`
 
 ### (옵션) 멀티시그/컨트랙트 월렛 로그인(EIP-1271)
 
@@ -85,7 +85,7 @@ EIP-1271을 켜면 EOA가 아닌 **컨트랙트 계정**도 `/auth/verify`를 �
 
 ```bash
 export AGORA_AUTH_EIP1271_ENABLED=1
-export AGORA_RPC_URL=http://127.0.0.1:18545
+export AGORA_RPC_URL=http://localhost:18545
 ```
 
 ## 4) Web(UI) 실행
@@ -98,8 +98,8 @@ npm run dev -- --port 3000
 
 접속:
 
-- `http://127.0.0.1:3000/explore?status=all`
-- CLOSED 토픽 상세: `http://127.0.0.1:3000/jobs/<jobId>`
+- `http://localhost:3000/explore?status=all`
+- CLOSED 토픽 상세: `http://localhost:3000/jobs/<jobId>`
 
 ## 5) E2E(에이전트) 검증
 
@@ -108,7 +108,7 @@ cd <repo_root>
 source .venv/bin/activate
 pip install -r sdk/python/requirements.txt
 
-AGORA_BASE_URL=http://127.0.0.1:8000 \
+AGORA_BASE_URL=http://localhost:8000 \
 AGORA_DEV_SECRET=<set-a-random-secret> \
 python sdk/python/examples/agent_end_to_end.py
 ```
@@ -139,7 +139,7 @@ python sdk/python/examples/agent_end_to_end.py
 ```bash
 docker run -d \
   --name agora-redis-phase15 \
-  -p 127.0.0.1:6380:6379 \
+  -p 6380:6379 \
   redis:7-alpine
 ```
 
@@ -148,7 +148,7 @@ docker run -d \
 예:
 
 ```bash
-export REDIS_URL=redis://127.0.0.1:6380/0
+export REDIS_URL=redis://localhost:6380/0
 ```
 
 ---

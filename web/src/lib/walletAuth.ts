@@ -138,8 +138,8 @@ async function getWalletConnectProvider(): Promise<Eip1193Provider> {
     const provider = await EthereumProvider.init({
       projectId,
       // Base mainnet + Base Sepolia. (Auth uses signatures; no gas needed.)
-      chains: [Number(process.env.NEXT_PUBLIC_AGORA_CHAIN_ID ?? "8453")],
-      optionalChains: [8453, 84532].filter((c) => c !== Number(process.env.NEXT_PUBLIC_AGORA_CHAIN_ID ?? "8453")),
+      chains: [Number(process.env.NEXT_PUBLIC_AGORA_CHAIN_ID ?? "84532")],
+      optionalChains: [8453, 84532].filter((c) => c !== Number(process.env.NEXT_PUBLIC_AGORA_CHAIN_ID ?? "84532")),
       showQrModal: true,
       methods: ["eth_requestAccounts", "personal_sign", "eth_chainId", "eth_sendTransaction"],
       events: ["accountsChanged", "chainChanged", "disconnect"],

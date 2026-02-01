@@ -19,7 +19,10 @@ export async function GET() {
     links: {
       app: appBase,
       discovery: `${appBase}/.well-known/agora.json`,
-      agent_card: `${appBase}/.well-known/agent.json`,
+      agent_card_app: `${appBase}/.well-known/agent.json`,
+      agent_card_api: `${apiBase}/.well-known/agent.json`,
+      // Backward-compatible alias: prefer the API domain as the canonical agent card for auth/spec links.
+      agent_card: `${apiBase}/.well-known/agent.json`,
       api_base: apiBase,
       openapi_json: `${apiBase}/openapi.json`,
       swagger_ui: `${apiBase}/docs`,

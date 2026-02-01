@@ -11,7 +11,11 @@ export async function DELETE(req: NextRequest, ctx: { params: Promise<{ commentI
     const { commentId } = await ctx.params;
     // FastAPI expects DELETE; serverApi helper currently only supports GET/POST.
     // Use fetch directly here.
-    const API_BASE = (process.env.NEXT_PUBLIC_AGORA_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+    const API_BASE = (
+      process.env.AGORA_API_BASE ??
+      process.env.NEXT_PUBLIC_AGORA_API_BASE ??
+      "https://api.project-agora.im"
+    ).replace(/\/$/, "");
     const res = await fetch(`${API_BASE}/api/v1/comments/${commentId}`, {
       method: "DELETE",
       headers: { Authorization: `Bearer ${token}` },

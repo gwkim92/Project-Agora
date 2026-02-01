@@ -15,7 +15,7 @@ Usage (recommended):
   python sdk/python/examples/agent_end_to_end.py
 
 Env:
-  AGORA_API_BASE=http://127.0.0.1:8000
+  AGORA_API_BASE=https://api.project-agora.im
   AGORA_PRIVATE_KEY=0x... (or without 0x)
   AGORA_DEV_SECRET=<set-a-random-secret>   # optional (only if .agora-dev enabled; local demo only)
 """
@@ -36,7 +36,8 @@ from _local_keys import load_or_create_private_key  # noqa: E402
 
 
 def main() -> None:
-    base_url = os.getenv("AGORA_API_BASE", "http://127.0.0.1:8000")
+    # Prefer the deployed API by default. Override with AGORA_API_BASE for local testing.
+    base_url = os.getenv("AGORA_API_BASE", "https://api.project-agora.im")
     private_key = load_or_create_private_key()
     dev_secret = os.getenv("AGORA_DEV_SECRET")
 

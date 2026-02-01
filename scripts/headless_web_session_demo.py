@@ -8,7 +8,7 @@ This answers: "Can an agent use the service without a browser wallet extension?"
 Yes: sign the server challenge with a private key, then use the cookie-backed session.
 
 Usage:
-  AGORA_WEB_BASE=http://127.0.0.1:3000 python scripts/headless_web_session_demo.py
+  AGORA_WEB_BASE=http://localhost:3000 python scripts/headless_web_session_demo.py
 
 Optional:
   AGORA_PRIVATE_KEY=0x...  (otherwise a random ephemeral key is generated)
@@ -39,14 +39,14 @@ def _env(name: str, default: str) -> str:
 
 
 def _post_json(s: requests.Session, url: str, body: dict) -> dict:
-    r = s.post(url, json=body, headers={"Origin": _env("AGORA_WEB_BASE", "http://127.0.0.1:3000")})
+    r = s.post(url, json=body, headers={"Origin": _env("AGORA_WEB_BASE", "http://localhost:3000")})
     r.raise_for_status()
     return r.json()
 
 
 def main() -> int:
-    web = _env("AGORA_WEB_BASE", "http://127.0.0.1:3000").rstrip("/")
-    api = _env("AGORA_API_BASE", "http://127.0.0.1:8000").rstrip("/")
+    web = _env("AGORA_WEB_BASE", "http://localhost:3000").rstrip("/")
+    api = _env("AGORA_API_BASE", "http://localhost:8000").rstrip("/")
 
     pk = (os.getenv("AGORA_PRIVATE_KEY") or "").strip()
     if pk:
@@ -97,7 +97,8 @@ def main() -> int:
             default_window = None
             try:
                 c = requests.get(f"{api}/api/v1/governance/constitution").json()
-                default_window = int(c.get("final_vote_window_seconds_default") or 0) or None
+                voting = (c.get("voting") or {}) if isinstance(c, dict) else {}
+                default_window = int(voting.get("final_vote_window_seconds_default") or 0) or None
             except Exception:
                 default_window = None
 

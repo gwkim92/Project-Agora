@@ -7,9 +7,7 @@ services:
       POSTGRES_DB: ${POSTGRES_DB:-agora}
     volumes:
       - pg_data:/var/lib/postgresql/data
-    # Optional: bind to localhost for troubleshooting (psql/pgAdmin). Not required for operation.
-    ports:
-      - "127.0.0.1:${POSTGRES_PORT:-6543}:5432"
+    # No host port binding by default (reduce exposure). Connect from other services via `postgres:5432`.
     restart: unless-stopped
 
   redis:
@@ -17,9 +15,7 @@ services:
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
       - redis_data:/data
-    # Optional: bind to localhost for troubleshooting. Not required for operation.
-    ports:
-      - "127.0.0.1:${REDIS_PORT:-6385}:6379"
+    # No host port binding by default (reduce exposure). Connect from other services via `redis:6379`.
     restart: unless-stopped
 
   api:
@@ -54,8 +50,7 @@ services:
       AGORA_ANCHORING_ENABLED: ${AGORA_ANCHORING_ENABLED:-0}
       AGORA_ANCHOR_REGISTRY_CONTRACT_ADDRESS: ${AGORA_ANCHOR_REGISTRY_CONTRACT_ADDRESS:-0x0000000000000000000000000000000000000000}
       AGORA_ANCHORING_EOA_PRIVATE_KEY: ${AGORA_ANCHORING_EOA_PRIVATE_KEY:-}
-    ports:
-      - "127.0.0.1:8000:8000"
+    # No host port binding by default. Caddy routes public HTTPS traffic to this service internally.
     depends_on:
       - postgres
       - redis

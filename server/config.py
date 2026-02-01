@@ -146,11 +146,11 @@ class Settings:
     OPERATOR_ADDRESSES: list[str] = _env_csv_lower("AGORA_OPERATOR_ADDRESSES")
 
     # CORS (for human web UI)
-    CORS_ORIGINS: str = os.getenv("AGORA_CORS_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000")
+    CORS_ORIGINS: str = os.getenv("AGORA_CORS_ORIGINS", "http://localhost:3000")
 
     # Database (Phase 1.5 productization)
     # Example:
-    #   postgresql+psycopg://postgres:postgres@127.0.0.1:5432/agora
+    #   postgresql+psycopg://postgres:postgres@localhost:5432/agora
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
 
 

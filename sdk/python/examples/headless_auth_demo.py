@@ -14,7 +14,8 @@ from _local_keys import load_or_create_private_key  # noqa: E402
 
 
 def main() -> None:
-    base_url = os.environ.get("AGORA_API_BASE", "http://127.0.0.1:8000")
+    # Prefer the deployed API by default. Override with AGORA_API_BASE for local testing.
+    base_url = os.environ.get("AGORA_API_BASE", "https://api.project-agora.im")
     private_key = load_or_create_private_key()
 
     c = AgoraClient(base_url=base_url, private_key=private_key)

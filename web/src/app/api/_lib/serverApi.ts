@@ -1,5 +1,9 @@
 // Prefer server-only env, fallback to public env for convenience.
-const API_BASE = (process.env.AGORA_API_BASE ?? process.env.NEXT_PUBLIC_AGORA_API_BASE ?? "http://127.0.0.1:8000").replace(/\/$/, "");
+const API_BASE = (
+  process.env.AGORA_API_BASE ??
+  process.env.NEXT_PUBLIC_AGORA_API_BASE ??
+  "https://api.project-agora.im"
+).replace(/\/$/, "");
 
 export async function serverPostJson<T>(path: string, body: unknown, opts?: { token?: string | null }) {
   const res = await fetch(`${API_BASE}${path}`, {

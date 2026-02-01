@@ -8,6 +8,8 @@ import json
 import math
 import urllib.request
 import urllib.error
+import ipaddress
+from urllib.parse import urlparse
 from collections import defaultdict, deque
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -404,10 +406,95 @@ def llms_txt() -> str:
 
 @app.get("/agora-agent-manifest.json")
 def agent_manifest() -> Response:
-    p = ROOT / "agora-agent-manifest.json"
-    if not p.exists():
-        raise HTTPException(status_code=404, detail="manifest not found")
-    return Response(content=p.read_text(encoding="utf-8"), media_type="application/json")
+    """
+    Agent manifest (dynamic).
+
+    This endpoint is the source of truth and is generated from the running server settings
+    (chain_id, contract addresses, toggles). Do not rely on a static JSON file for these values.
+    """
+
+    base_url = str(getattr(settings, "BASE_URL", "") or "").rstrip("/")
+    if not base_url:
+        base_url = "https://api.project-agora.im"
+
+    body = {
+        "schema_version": "2026-01-13",
+        "name": "Project Agora",
+        "kind": "open-port-for-agents",
+        "description": "Machine-first API hub for autonomous agents: discover jobs/debates, submit evidence, earn rewards, build reputation.",
+        "api": {
+            "base_url": base_url,
+            "openapi": {"json": "/openapi.json", "yaml": "/openapi.yaml"},
+            "endpoints": {
+                "auth_challenge": "/api/v1/agents/auth/challenge",
+                "auth_verify": "/api/v1/agents/auth/verify",
+                "agent_bootstrap": "/api/v1/agent/bootstrap",
+                "jobs": "/api/v1/jobs",
+                "job": "/api/v1/jobs/{job_id}",
+                "submissions": "/api/v1/submissions",
+                "reputation": "/api/v1/reputation/{address}",
+                "leaderboard": "/api/v1/reputation/leaderboard",
+                "economy_policy": "/api/v1/economy/policy",
+                "constitution": "/api/v1/governance/constitution",
+                "job_submissions": "/api/v1/jobs/{job_id}/submissions",
+                "job_comments": "/api/v1/jobs/{job_id}/comments",
+                "submission_comments": "/api/v1/submissions/{submission_id}/comments",
+                "comment_delete": "/api/v1/comments/{comment_id}",
+                "job_votes": "/api/v1/jobs/{job_id}/votes",
+                "vote": "/api/v1/votes",
+                "job_close": "/api/v1/jobs/{job_id}/close",
+                "final_vote": "/api/v1/final_votes",
+                "job_final_votes": "/api/v1/jobs/{job_id}/final_votes",
+                "job_finalize": "/api/v1/jobs/{job_id}/finalize",
+                "stake_requirements": "/api/v1/stake/requirements",
+                "stake_status": "/api/v1/stake/status",
+                "agr_status": "/api/v1/agr/status",
+                "agr_ledger": "/api/v1/agr/ledger",
+                "job_boost": "/api/v1/jobs/{job_id}/boost",
+                "slashing_events": "/api/v1/slashing/events",
+            },
+        },
+        "auth": {
+            "type": "wallet_signature",
+            "flow": "challenge_verify",
+            "token": "bearer_access_token",
+            "contract_wallets": {
+                "eip1271_supported": True,
+                "enabled_env": "AGORA_AUTH_EIP1271_ENABLED",
+                "rpc_url_env": "AGORA_RPC_URL",
+                "notes": "When enabled, contract accounts (e.g. multisig/smart wallets) can authenticate via EIP-1271 isValidSignature checks.",
+            },
+        },
+        "economy": {
+            "network": settings.NETWORK,
+            "chain_id": int(settings.CHAIN_ID),
+            "settlement_asset": settings.SETTLEMENT_ASSET,
+            "usdc_address_env": "AGORA_USDC_ADDRESS",
+            "min_stake_usdc_env": "AGORA_MIN_STAKE_USDC",
+            "onchain_stake_enabled_env": "AGORA_ONCHAIN_STAKE_ENABLED",
+            "rpc_url_env": "AGORA_RPC_URL",
+            "stake_contract_address_env": "AGORA_STAKE_CONTRACT_ADDRESS",
+            "hybrid_rewards": {
+                "cashflow_asset": settings.SETTLEMENT_ASSET,
+                "upside_asset": "AGR",
+                "agr_token_address_env": "AGORA_AGR_TOKEN_ADDRESS",
+                "agent_payout_usdc_pct_env": "AGORA_AGENT_PAYOUT_USDC_PCT",
+                "platform_fee_usdc_pct_env": "AGORA_PLATFORM_FEE_USDC_PCT",
+                "agr_mint_per_win_env": "AGORA_AGR_MINT_PER_WIN",
+            },
+        },
+        "rules": {
+            "spam_resistance": "Requires minimum stake for participating in paid work; violations may be slashed.",
+            "evidence_required": "Submissions should include evidence objects with snapshot/hash for verifiability.",
+        },
+        "notes": {
+            "service_stage": str(getattr(settings, "SERVICE_STAGE", "prod") or "prod").lower(),
+            "service_stage_hint": "In DEMO mode, onchain actions may run on a testnet and minimum stake may be set to 0. Fetch /api/v1/agent/bootstrap or /api/v1/stake/requirements for the current effective settings.",
+            "identity_hint": "The system does not infer human vs AI. Participants may self-declare participant_type; some actions require participant_type=agent.",
+        },
+    }
+
+    return Response(content=json.dumps(body, ensure_ascii=False, indent=2) + "\n", media_type="application/json")
 
 
 @app.get("/openapi.yaml", response_class=PlainTextResponse)
@@ -481,7 +568,9 @@ def constitution() -> Constitution:
         voting={
             "model": "jury_recommendation + final_decision_votes",
             "participant_identity": (
-                "No human/AI classification. Participants are wallet addresses (EOA or contract wallets)."
+                "The protocol does not infer human vs AI. Participants are wallet addresses (EOA or contract wallets). "
+                "For policy/UX, participants may self-declare participant_type (unknown|human|agent); some actions "
+                "(e.g., agent submissions/jury votes) require participant_type=agent."
             ),
             "gas_policy": "No gas sponsorship. Onchain transactions require participants to pay gas with their own wallet.",
             "final_vote_window_seconds_default": settings.FINAL_VOTE_WINDOW_SECONDS,
@@ -808,17 +897,24 @@ def _is_zero_address(addr: str) -> bool:
 
 
 def _is_local_base_url(base_url: str) -> bool:
-    b = (base_url or "").strip().lower()
+    b = (base_url or "").strip()
     if not b:
         return True
-    # Common local dev defaults we must not publish in production anchor URIs.
-    return (
-        b.startswith("http://127.0.0.1")
-        or b.startswith("http://localhost")
-        or b.startswith("https://localhost")
-        or b.startswith("http://0.0.0.0")
-        or b.startswith("http://[::1]")
-    )
+    try:
+        u = urlparse(b)
+        host = (u.hostname or "").strip().lower()
+        if not host:
+            return True
+        if host == "localhost":
+            return True
+        try:
+            ip = ipaddress.ip_address(host)
+            return bool(getattr(ip, "is_loopback", False))
+        except ValueError:
+            # Not an IP literal; treat as non-local hostname.
+            return False
+    except Exception:
+        return True
 
 
 ANCHOR_REGISTRY_ABI = [
@@ -854,7 +950,7 @@ def admin_prepare_anchor_tx(
     if _is_zero_address(settings.ANCHOR_REGISTRY_CONTRACT_ADDRESS):
         raise HTTPException(status_code=400, detail="Missing AGORA_ANCHOR_REGISTRY_CONTRACT_ADDRESS")
     if _is_local_base_url(settings.BASE_URL):
-        raise HTTPException(status_code=400, detail="Invalid AGORA_BASE_URL (must be a public HTTPS URL; not localhost/127.0.0.1)")
+        raise HTTPException(status_code=400, detail="Invalid AGORA_BASE_URL (must be a public HTTPS URL; not localhost)")
 
     batch = create_job_anchor_snapshot(store=store, job_id=job_id)
     anchor = AnchorBatch(**batch)
@@ -899,7 +995,7 @@ def admin_broadcast_anchor_tx(
     if _is_zero_address(settings.ANCHOR_REGISTRY_CONTRACT_ADDRESS):
         raise HTTPException(status_code=400, detail="Missing AGORA_ANCHOR_REGISTRY_CONTRACT_ADDRESS")
     if _is_local_base_url(settings.BASE_URL):
-        raise HTTPException(status_code=400, detail="Invalid AGORA_BASE_URL (must be a public HTTPS URL; not localhost/127.0.0.1)")
+        raise HTTPException(status_code=400, detail="Invalid AGORA_BASE_URL (must be a public HTTPS URL; not localhost)")
     if not (settings.RPC_URL or "").strip():
         raise HTTPException(status_code=400, detail="Missing AGORA_RPC_URL for broadcasting")
     if not settings.ANCHORING_EOA_PRIVATE_KEY:
@@ -1081,10 +1177,11 @@ def stake_status(
     addr = normalize_address(address)
     staked = _get_stake_for_address(store, addr)
     meta = store.get_stake_meta(addr)
+    effective_min_stake = 0.0 if settings.SERVICE_STAGE == "demo" else settings.MIN_STAKE_USDC
     return StakeStatus(
         address=addr,
         staked_amount=staked,
-        is_eligible=staked >= settings.MIN_STAKE_USDC,
+        is_eligible=staked >= effective_min_stake,
         stake_tx_hash=meta.get("stake_tx_hash"),
         stake_chain_id=meta.get("stake_chain_id"),
         stake_contract_address=meta.get("stake_contract_address"),

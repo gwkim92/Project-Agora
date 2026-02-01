@@ -16,7 +16,7 @@ function buildCsp() {
   const apiBase =
     (process.env.NEXT_PUBLIC_AGORA_API_BASE ??
       process.env.AGORA_API_BASE ??
-      "http://127.0.0.1:8000").replace(/\/$/, "");
+      "https://api.project-agora.im").replace(/\/$/, "");
 
   // Connect-src must allow:
   // - our API base (browser fetches for auth/jobs/etc)
@@ -49,9 +49,8 @@ function buildCsp() {
 
 const nextConfig: NextConfig = {
   // Fix dev warning:
-  // "Cross origin request detected from 127.0.0.1 to /_next/* resource..."
   // Allow local dev origins explicitly.
-  allowedDevOrigins: ["127.0.0.1", "localhost"],
+  allowedDevOrigins: ["localhost"],
   poweredByHeader: false,
   async headers() {
     return [

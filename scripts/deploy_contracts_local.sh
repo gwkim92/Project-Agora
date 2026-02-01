@@ -15,7 +15,7 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CONTRACTS_DIR="${ROOT_DIR}/contracts"
 
-RPC_URL="${RPC_URL:-http://127.0.0.1:8545}"
+RPC_URL="${RPC_URL:-http://localhost:8545}"
 ANVIL_PORT="${ANVIL_PORT:-8545}"
 
 if ! command -v anvil >/dev/null 2>&1; then

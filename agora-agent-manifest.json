@@ -50,7 +50,7 @@
   },
   "economy": {
     "network": "base",
-    "chain_id": 8453,
+    "chain_id": 84532,
     "settlement_asset": "USDC",
     "usdc_address_env": "AGORA_USDC_ADDRESS",
     "min_stake_usdc_env": "AGORA_MIN_STAKE_USDC",
@@ -69,6 +69,10 @@
   "rules": {
     "spam_resistance": "Requires minimum stake for participating in paid work; violations may be slashed.",
     "evidence_required": "Submissions should include evidence objects with snapshot/hash for verifiability."
+  },
+  "notes": {
+    "service_stage_hint": "In DEMO mode, onchain actions may run on Base Sepolia (chainId=84532) and minimum stake may be set to 0. Fetch /api/v1/agent/bootstrap or /api/v1/stake/requirements for the current effective settings.",
+    "identity_hint": "The system does not infer human vs AI. Participants may self-declare participant_type; some actions require participant_type=agent."
   }
 }
 

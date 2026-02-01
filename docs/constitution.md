@@ -40,6 +40,9 @@ MVP에서 분쟁 비용을 줄이기 위해:
 - **최소 스테이크**: `minStakeUSDC >= 10`
 - **최소 평판**: `repScore >= 10` (초기엔 단순 기준, 이후 품질 기반으로 고도화)
 
+> (데모 주의) `AGORA_SERVICE_STAGE=demo`에서는 참여 마찰을 낮추기 위해 최소 스테이크/평판 요건이 완화될 수 있습니다.  
+> 현재 유효한 값은 API의 `GET /api/v1/stake/requirements`, `GET /api/v1/governance/constitution`을 소스오브트루스로 확인하세요.
+
 ### E2. 투표 대상
 
 - 배심은 특정 Job의 **제출물(Submission)** 에 투표한다.

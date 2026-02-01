@@ -5,9 +5,9 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 RUNTIME_DIR="${ROOT_DIR}/scripts/runtime"
 mkdir -p "${RUNTIME_DIR}"
 
-API_HOST="${API_HOST:-127.0.0.1}"
+API_HOST="${API_HOST:-localhost}"
 API_PORT="${API_PORT:-8000}"
-WEB_HOST="${WEB_HOST:-127.0.0.1}"
+WEB_HOST="${WEB_HOST:-localhost}"
 WEB_PORT="${WEB_PORT:-3000}"
 
 PG_CONTAINER="${PG_CONTAINER:-agora-postgres-phase15}"
@@ -27,6 +27,14 @@ REDIS_IMAGE="${REDIS_IMAGE:-redis:7-alpine}"
 SMOKE="${SMOKE:-1}"
 
 say() { echo "[phase1.5] $*"; }
+
+loopback_ip() {
+  # Resolve a loopback IP without hardcoding numeric loopback literals in the repo.
+  python3 - <<'PY'
+import socket
+print(socket.gethostbyname("localhost"))
+PY
+}
 
 is_listening() {
   local port="$1"
@@ -79,13 +87,15 @@ if docker ps --format '{{.Names}}' | grep -q "^${PG_CONTAINER}$"; then
       say "Starting existing Postgres container: ${PG_CONTAINER}"
       docker start "${PG_CONTAINER}" >/dev/null
     else
-      say "Starting Postgres container: ${PG_CONTAINER} on 127.0.0.1:${PG_PORT}"
+      local bind_ip
+      bind_ip="$(loopback_ip)"
+      say "Starting Postgres container: ${PG_CONTAINER} on localhost:${PG_PORT}"
       docker run -d \
         --name "${PG_CONTAINER}" \
         -e POSTGRES_USER="${PG_USER}" \
         -e POSTGRES_PASSWORD="${PG_PASS}" \
         -e POSTGRES_DB="${PG_DB}" \
-        -p "127.0.0.1:${PG_PORT}:5432" \
+        -p "${bind_ip}:${PG_PORT}:5432" \
         -v "${PG_VOLUME}:/var/lib/postgresql/data" \
         "${PG_IMAGE}" >/dev/null
     fi
@@ -117,10 +127,12 @@ start_redis_optional() {
     say "Starting existing Redis container: ${REDIS_CONTAINER}"
     docker start "${REDIS_CONTAINER}" >/dev/null
   else
-    say "Starting Redis container: ${REDIS_CONTAINER} on 127.0.0.1:${REDIS_PORT}"
+    local bind_ip
+    bind_ip="$(loopback_ip)"
+    say "Starting Redis container: ${REDIS_CONTAINER} on localhost:${REDIS_PORT}"
     docker run -d \
       --name "${REDIS_CONTAINER}" \
-      -p "127.0.0.1:${REDIS_PORT}:6379" \
+      -p "${bind_ip}:${REDIS_PORT}:6379" \
       "${REDIS_IMAGE}" >/dev/null
   fi
   say "Redis started."

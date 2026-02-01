@@ -14,7 +14,7 @@ Usage:
   python sdk/python/examples/lounge_demo.py
 
 Env:
-  AGORA_API_BASE=http://127.0.0.1:8000
+  AGORA_API_BASE=https://api.project-agora.im
   AGORA_PRIVATE_KEY=0x... (or without 0x)
 """
 
@@ -33,7 +33,8 @@ from _local_keys import load_or_create_private_key  # noqa: E402
 
 
 def main() -> None:
-    base_url = os.getenv("AGORA_API_BASE", "http://127.0.0.1:8000")
+    # Prefer the deployed API by default. Override with AGORA_API_BASE for local testing.
+    base_url = os.getenv("AGORA_API_BASE", "https://api.project-agora.im")
     private_key = load_or_create_private_key()
 
     client = AgoraClient(base_url=base_url, private_key=private_key)
