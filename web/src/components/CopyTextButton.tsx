@@ -22,7 +22,29 @@ export function CopyTextButton({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1200);
     } catch {
-      // Fallback: best-effort prompt (some environments block clipboard API)
+      // Fallback: execCommand(copy) for browsers that block clipboard API.
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = text;
+        ta.setAttribute("readonly", "true");
+        ta.style.position = "fixed";
+        ta.style.top = "0";
+        ta.style.left = "0";
+        ta.style.opacity = "0";
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        const ok = document.execCommand("copy");
+        document.body.removeChild(ta);
+        if (ok) {
+          setCopied(true);
+          window.setTimeout(() => setCopied(false), 1200);
+          return;
+        }
+      } catch {
+        // ignore and fall through
+      }
+      // Last resort: prompt so user can manually copy.
       window.prompt("Copy this text:", text);
     }
   }, [text]);

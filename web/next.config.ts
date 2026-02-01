@@ -9,7 +9,8 @@ function buildCsp() {
   // If we block those, dev hydration breaks (and can trigger Next invariant errors).
   // Vercel Analytics loads an external script from va.vercel-scripts.com and sends events to vitals.vercel-analytics.com.
   const scriptSrc = isProd
-    ? "script-src 'self' https://va.vercel-scripts.com"
+    // NOTE: Next.js uses inline scripts for bootstrapping/hydration; keep unsafe-inline in prod to avoid breaking client interactions.
+    ? "script-src 'self' 'unsafe-inline' https://va.vercel-scripts.com"
     : "script-src 'self' 'unsafe-eval' 'unsafe-inline'";
 
   const apiBase =

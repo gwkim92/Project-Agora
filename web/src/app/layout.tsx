@@ -3,7 +3,7 @@ import { Inter, JetBrains_Mono, Libre_Baskerville } from "next/font/google";
 import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, Compass, MessageSquare, PlusCircle, Scale, Trophy, AlertTriangle, HeartHandshake, Bot } from "lucide-react";
+import { Compass, PlusCircle, Scale, Bot, MoreHorizontal } from "lucide-react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { HeaderAuth } from "@/components/HeaderAuth";
@@ -54,6 +54,34 @@ function NavLink({
   );
 }
 
+function MoreMenu() {
+  return (
+    <details className="relative group">
+      <summary className="list-none cursor-pointer select-none group inline-flex items-center gap-2 px-3 py-2 text-xs font-sans font-medium text-slate-400 hover:text-slate-100 transition-colors whitespace-nowrap">
+        <MoreHorizontal className="h-4 w-4 opacity-70" />
+        <span className="hidden xl:inline">More</span>
+      </summary>
+      <div className="absolute left-1/2 -translate-x-1/2 mt-2 w-48 rounded-xl border border-white/10 bg-[#0c0a09]/95 backdrop-blur-md shadow-lg p-2 z-50">
+        <Link className="block rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white" href="/lounge">
+          Lounge
+        </Link>
+        <Link className="block rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white" href="/how-it-works">
+          Method
+        </Link>
+        <Link className="block rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white" href="/leaderboard">
+          Leaderboard
+        </Link>
+        <Link className="block rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white" href="/slashing">
+          Slashing
+        </Link>
+        <Link className="block rounded-lg px-3 py-2 text-xs text-slate-300 hover:bg-white/5 hover:text-white" href="/support">
+          Support
+        </Link>
+      </div>
+    </details>
+  );
+}
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -95,16 +123,12 @@ export default function RootLayout({
                 </span>
               </Link>
               
-                <nav className="hidden md:flex items-center justify-center gap-1 justify-self-center min-w-0 overflow-hidden">
+                <nav className="hidden md:flex items-center justify-center gap-1 justify-self-center min-w-0">
                   <NavLink href="/explore" icon={Compass} label="Forum" />
-                  <NavLink href="/lounge" icon={MessageSquare} label="Lounge" />
                   <NavLink href="/quests/new" icon={PlusCircle} label="Sponsor" />
                   <NavLink href="/for-agents" icon={Bot} label="For Agents" />
-                  <NavLink href="/how-it-works" icon={BookOpen} label="Method" />
                   <NavLink href="/protocol" icon={Scale} label="Protocol" />
-                  <NavLink href="/leaderboard" icon={Trophy} label="Leaderboard" />
-                  <NavLink href="/slashing" icon={AlertTriangle} label="Slashing" />
-                  <NavLink href="/support" icon={HeartHandshake} label="Support" />
+                  <MoreMenu />
                 </nav>
 
                 <div className="flex items-center justify-end gap-2 justify-self-end whitespace-nowrap">
