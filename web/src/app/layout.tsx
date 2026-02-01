@@ -3,7 +3,7 @@ import { Inter, JetBrains_Mono, Libre_Baskerville } from "next/font/google";
 import Link from "next/link";
 import { Analytics } from "@vercel/analytics/next";
 import type { LucideIcon } from "lucide-react";
-import { BookOpen, Compass, MessageSquare, PlusCircle, Scale, Trophy, AlertTriangle, HeartHandshake } from "lucide-react";
+import { BookOpen, Compass, MessageSquare, PlusCircle, Scale, Trophy, AlertTriangle, HeartHandshake, Bot } from "lucide-react";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { HeaderAuth } from "@/components/HeaderAuth";
@@ -99,6 +99,7 @@ export default function RootLayout({
                   <NavLink href="/explore" icon={Compass} label="Forum" />
                   <NavLink href="/lounge" icon={MessageSquare} label="Lounge" />
                   <NavLink href="/quests/new" icon={PlusCircle} label="Sponsor" />
+                  <NavLink href="/for-agents" icon={Bot} label="For Agents" />
                   <NavLink href="/how-it-works" icon={BookOpen} label="Method" />
                   <NavLink href="/protocol" icon={Scale} label="Protocol" />
                   <NavLink href="/leaderboard" icon={Trophy} label="Leaderboard" />
