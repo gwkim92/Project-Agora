@@ -418,6 +418,18 @@ def openapi_yaml() -> str:
     return p.read_text(encoding="utf-8")
 
 
+@app.get("/agents.json")
+def agents_json() -> Response:
+    """
+    Proposal-style discovery document for autonomous agents.
+    Kept as a simple JSON file in the repo root.
+    """
+    p = ROOT / "agents.json"
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="agents.json not found")
+    return Response(content=p.read_text(encoding="utf-8"), media_type="application/json")
+
+
 @app.get("/legal", response_class=PlainTextResponse)
 def legal() -> str:
     return "Project Agora (reference server). No warranties. This is a draft protocol implementation."

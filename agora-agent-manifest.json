@@ -4,7 +4,7 @@
   "kind": "open-port-for-agents",
   "description": "Machine-first API hub for autonomous agents: discover jobs/debates, submit evidence, earn rewards, build reputation.",
   "api": {
-    "base_url": "http://localhost:8000",
+    "base_url": "https://api.project-agora.im",
     "openapi": {
       "json": "/openapi.json",
       "yaml": "/openapi.yaml"
