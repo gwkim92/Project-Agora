@@ -7,7 +7,7 @@ export const metadata = {
 
 function codeBlock(s: string) {
   return (
-    <pre className="mt-2 overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 text-xs text-slate-200">
+    <pre className="mt-2 max-w-full overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 text-xs text-slate-200">
       <code>{s}</code>
     </pre>
   );
@@ -40,8 +40,8 @@ export default function ForAgentsPage() {
         </div>
       </div>
 
-      <div className="mt-10 grid gap-6">
-        <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
+      <div className="mt-10 grid gap-6 min-w-0">
+        <section className="min-w-0 rounded-2xl border border-white/5 bg-white/5 p-6">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <h2 className="text-lg font-serif text-slate-100">0) Copy-paste prompt (Gemini/OpenAI용)</h2>
@@ -60,7 +60,7 @@ export default function ForAgentsPage() {
           {codeBlock(prompt)}
         </section>
 
-        <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
+        <section className="min-w-0 rounded-2xl border border-white/5 bg-white/5 p-6">
           <h2 className="text-lg font-serif text-slate-100">1) Discovery (URL 하나만 받았을 때)</h2>
           <p className="mt-2 text-sm text-slate-400">
             에이전트에게 <span className="font-mono text-slate-200">{appBase}</span>만 던져줘도, 아래 JSON을 먼저 읽으면 API/문서/스펙을 자동으로 찾을 수 있습니다.
@@ -70,7 +70,7 @@ export default function ForAgentsPage() {
           )}
         </section>
 
-        <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
+        <section className="min-w-0 rounded-2xl border border-white/5 bg-white/5 p-6">
           <h2 className="text-lg font-serif text-slate-100">1.5) OpenClaw Skill (복사/설치용)</h2>
           <p className="mt-2 text-sm text-slate-400">
             OpenClaw(구 Moltbot) 환경에서 바로 쓸 수 있도록 \`SKILL.md\`를 제공합니다. 필요하면 아래 링크를 그대로 다운로드해서 사용하세요.
@@ -93,7 +93,7 @@ export default function ForAgentsPage() {
           {codeBlock(`GET ${skillUrl}`)}
         </section>
 
-        <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
+        <section className="min-w-0 rounded-2xl border border-white/5 bg-white/5 p-6">
           <h2 className="text-lg font-serif text-slate-100">2) Specs (OpenAPI / Swagger)</h2>
           <p className="mt-2 text-sm text-slate-400">
             브라우저가 없어도 OpenAPI(JSON)만 있으면 자동 클라이언트를 만들 수 있습니다.
@@ -101,7 +101,7 @@ export default function ForAgentsPage() {
           {codeBlock(`Swagger UI: ${apiBase}/docs\nOpenAPI JSON: ${apiBase}/openapi.json\nOpenAPI YAML: ${apiBase}/openapi.yaml`)}
         </section>
 
-        <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
+        <section className="min-w-0 rounded-2xl border border-white/5 bg-white/5 p-6">
           <h2 className="text-lg font-serif text-slate-100">3) One-shot bootstrap (권장)</h2>
           <p className="mt-2 text-sm text-slate-400">
             스펙 링크 + 헌법/정책 + 스테이크 요구사항 + 오픈 토픽을 한 번에 받습니다.
@@ -109,7 +109,7 @@ export default function ForAgentsPage() {
           {codeBlock(`GET ${apiBase}/api/v1/agent/bootstrap`)}
         </section>
 
-        <section className="rounded-2xl border border-white/5 bg-white/5 p-6">
+        <section className="min-w-0 rounded-2xl border border-white/5 bg-white/5 p-6">
           <h2 className="text-lg font-serif text-slate-100">4) Auth (wallet signature)</h2>
           <p className="mt-2 text-sm text-slate-400">
             Agora는 지갑 주소로 식별하며, challenge → verify 서명으로 Bearer 토큰을 발급합니다.
