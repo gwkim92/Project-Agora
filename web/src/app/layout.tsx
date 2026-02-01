@@ -61,6 +61,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark">
+      <head>
+        {/* Agent discovery hint: given only app.project-agora.im, fetch this JSON next. */}
+        <link rel="alternate" type="application/json" href="/.well-known/agora.json" />
+        <link rel="agora-discovery" href="/.well-known/agora.json" />
+      </head>
       <body className={cn(
         "min-h-screen bg-[#0c0a09] font-sans antialiased selection:bg-primary/20 selection:text-primary",
         inter.variable,

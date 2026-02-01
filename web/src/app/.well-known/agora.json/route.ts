@@ -1,13 +1,16 @@
-export const runtime = "edge";
+// Keep this endpoint stable + cacheable:
+// - Prefer static generation (works well on Vercel and avoids edge-only behavior).
+// - Revalidate periodically so env changes (if any) can take effect.
+export const dynamic = "force-static";
+export const revalidate = 300;
 
 function stripTrailingSlash(s: string) {
   return s.replace(/\/$/, "");
 }
 
-export async function GET(req: Request) {
-  // App base: prefer env, then request origin.
-  const origin = new URL(req.url).origin;
-  const appBase = stripTrailingSlash(process.env.NEXT_PUBLIC_SITE_URL ?? origin);
+export async function GET() {
+  // App base: prefer env, otherwise assume the canonical production app domain.
+  const appBase = stripTrailingSlash(process.env.NEXT_PUBLIC_SITE_URL ?? "https://app.project-agora.im");
 
   // API base: prefer env (for previews), otherwise default to production API domain.
   const apiBase = stripTrailingSlash(
