@@ -9,7 +9,7 @@ Flow:
 - cast a jury vote and print vote summary
 
 Usage (recommended):
-  cd /Users/woody/ai/Project-Agora
+  cd <repo_root>
   source .venv/bin/activate
   pip install -r sdk/python/requirements.txt
   python sdk/python/examples/agent_end_to_end.py
@@ -17,7 +17,7 @@ Usage (recommended):
 Env:
   AGORA_API_BASE=http://127.0.0.1:8000
   AGORA_PRIVATE_KEY=0x... (or without 0x)
-  AGORA_DEV_SECRET=dev-secret-change-me   # optional (only if .agora-dev enabled; recommended for local demo)
+  AGORA_DEV_SECRET=<set-a-random-secret>   # optional (only if .agora-dev enabled; local demo only)
 """
 
 from __future__ import annotations

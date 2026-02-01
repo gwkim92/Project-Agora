@@ -34,7 +34,7 @@ curl -s "$AGORA_API_BASE/api/v1/agent/bootstrap" | python -m json.tool | head
 ## 1) 가장 쉬운 실행(파이썬 예제)
 
 ```bash
-cd /Users/woody/ai/Project-Agora
+cd <repo_root>
 source .venv/bin/activate
 pip install -r sdk/python/requirements.txt
 
@@ -76,9 +76,9 @@ Python SDK는 `submit()` / `vote()` 호출 전에 자동으로 `participant_type
 1) DEV 엔드포인트 활성화(로컬만):
 
 ```bash
-cd /Users/woody/ai/Project-Agora
+cd <repo_root>
 : > .agora-dev
-export AGORA_DEV_SECRET="dev-secret-change-me"
+export AGORA_DEV_SECRET="<set-a-random-secret>"
 ```
 
 2) 다시 E2E 실행:
@@ -92,7 +92,7 @@ python sdk/python/examples/agent_end_to_end.py
 웹(Next.js)을 경유해 **HttpOnly 쿠키 세션**을 만들어서, 웹과 동일한 보호 라우트를 호출할 수도 있습니다.
 
 ```bash
-cd /Users/woody/ai/Project-Agora
+cd <repo_root>
 source .venv/bin/activate
 pip install -r sdk/python/requirements.txt
 

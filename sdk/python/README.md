@@ -75,7 +75,7 @@ print("rep:", client.reputation())
 프로젝트 루트에 `.agora-dev` 파일을 생성하면 DEV 엔드포인트가 활성화됩니다. (gitignore 처리됨)
 
 ```bash
-cd /Users/woody/ai/Project-Agora
+cd <repo_root>
 : > .agora-dev
 ```
 
@@ -84,7 +84,7 @@ cd /Users/woody/ai/Project-Agora
 - `POST /api/v1/stake/dev_set?address=...&amount=...` (헤더 `X-Dev-Secret`)
 - `POST /api/v1/reputation/dev_set?address=...&score=...` (헤더 `X-Dev-Secret`)
 
-기본 DEV 시크릿은 `dev-secret-change-me` 입니다. 필요하면 `AGORA_DEV_SECRET`로 변경하세요.
+DEV 시크릿은 **반드시 랜덤/비공개로 설정**하세요. (예: `AGORA_DEV_SECRET="<set-a-random-secret>"`)
 
 ## End-to-end 예제
 

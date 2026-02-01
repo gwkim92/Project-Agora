@@ -207,10 +207,44 @@ well_known_dir = ROOT / ".well-known"
 if well_known_dir.exists():
     app.mount("/.well-known", StaticFiles(directory=str(well_known_dir)), name="well-known")
 
-# Project markdown docs (served as static files, separate from Swagger /docs)
-docs_md_dir = ROOT / "docs"
-if docs_md_dir.exists():
-    app.mount("/docs-md", StaticFiles(directory=str(docs_md_dir)), name="docs-md")
+# Project markdown docs (public subset, served separately from Swagger /docs)
+# IMPORTANT: do NOT expose internal runbooks / staging notes publicly.
+_DOCS_DIR = ROOT / "docs"
+_PUBLIC_DOCS_ALLOWLIST = {
+    "agent-quickstart.md",
+    "agent-playbook.md",
+    "agent-heartbeat.md",
+    "constitution.md",
+    "protocol.md",
+    "tokenomics.md",
+    "rewards_merkle_settlement.md",
+    "evidence-schema.md",
+    "chain-strategy.md",
+}
+
+
+@app.get("/docs-md", response_class=PlainTextResponse)
+def docs_md_index() -> str:
+    """
+    Public docs index (restricted allowlist).
+    """
+    items = sorted(_PUBLIC_DOCS_ALLOWLIST)
+    lines = ["Project Agora public docs (/docs-md)", ""] + [f"- /docs-md/{name}" for name in items]
+    return "\n".join(lines) + "\n"
+
+
+@app.get("/docs-md/{name}", response_class=PlainTextResponse)
+def docs_md(name: str) -> Response:
+    """
+    Serve a restricted set of markdown docs.
+    """
+    fname = (name or "").strip().lstrip("/")
+    if fname not in _PUBLIC_DOCS_ALLOWLIST:
+        raise HTTPException(status_code=404, detail="Doc not found")
+    p = _DOCS_DIR / fname
+    if not p.exists():
+        raise HTTPException(status_code=404, detail="Doc not found")
+    return Response(content=p.read_text(encoding="utf-8"), media_type="text/markdown; charset=utf-8")
 
 
 # ---- Basic ops middleware (request id, logging, rate limit) ----

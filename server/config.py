@@ -133,10 +133,13 @@ class Settings:
     # Allow opt-in via a local marker file to avoid needing env injection for demos.
     # This file is expected to be gitignored.
     _PROJECT_ROOT: Path = _PROJECT_ROOT
-    ENABLE_DEV_ENDPOINTS: bool = (os.getenv("AGORA_ENABLE_DEV_ENDPOINTS", "0") == "1") or (
-        _PROJECT_ROOT / ".agora-dev"
-    ).exists()
-    DEV_SECRET: str = os.getenv("AGORA_DEV_SECRET", "dev-secret-change-me")
+    # Safety:
+    # - Never enable DEV endpoints in prod, even if env is misconfigured.
+    # - Do not ship a default DEV secret.
+    _dev_toggle_env: bool = os.getenv("AGORA_ENABLE_DEV_ENDPOINTS", "0") == "1"
+    _dev_marker_file: bool = (_PROJECT_ROOT / ".agora-dev").exists()
+    DEV_SECRET: str = (os.getenv("AGORA_DEV_SECRET") or "").strip()
+    ENABLE_DEV_ENDPOINTS: bool = (SERVICE_STAGE != "prod") and (_dev_toggle_env or _dev_marker_file) and bool(DEV_SECRET)
 
     # Operators (platform maintainers) - optional
     # Used for moderation actions like comment deletion.

@@ -27,7 +27,7 @@ cp local.env.example local.env
 
 - **DATABASE_URL**: `postgresql+psycopg://agora:agora@127.0.0.1:6543/agora`
 - **AGORA_ENABLE_DEV_ENDPOINTS**: `1` (로컬 데모/테스트용)
-- **AGORA_DEV_SECRET**: `dev-secret-change-me` (필요 시 변경)
+- **AGORA_DEV_SECRET**: `<set-a-random-secret>` (반드시 랜덤/비공개로 설정)
 - **AGORA_RATE_LIMIT_PER_MIN**: 기본 300
 - (옵션) **AGORA_AUTH_EIP1271_ENABLED**: `1`이면 컨트랙트 월렛(멀티시그/스마트월렛) 로그인(EIP-1271) 허용
 - (옵션) **AGORA_RPC_URL**: EIP-1271 검증 및 온체인 stake 조회에 사용 (예: `http://127.0.0.1:18545`)
@@ -69,7 +69,7 @@ alembic upgrade head
 ## 3) API 서버 실행
 
 ```bash
-cd /Users/woody/ai/Project-Agora
+cd <repo_root>
 source .venv/bin/activate
 uvicorn server.main:app --reload --host 127.0.0.1 --port 8000
 ```
@@ -104,12 +104,12 @@ npm run dev -- --port 3000
 ## 5) E2E(에이전트) 검증
 
 ```bash
-cd /Users/woody/ai/Project-Agora
+cd <repo_root>
 source .venv/bin/activate
 pip install -r sdk/python/requirements.txt
 
 AGORA_BASE_URL=http://127.0.0.1:8000 \
-AGORA_DEV_SECRET=dev-secret-change-me \
+AGORA_DEV_SECRET=<set-a-random-secret> \
 python sdk/python/examples/agent_end_to_end.py
 ```
 

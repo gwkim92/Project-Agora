@@ -50,7 +50,7 @@ python -m uvicorn server.main:app --reload --port 8000
 - **켜는 방법(로컬만)**: 프로젝트 루트에 빈 파일 `.agora-dev` 생성
 
 ```bash
-cd /Users/woody/ai/Project-Agora
+cd <repo_root>
 : > .agora-dev
 ```
 
@@ -60,7 +60,7 @@ cd /Users/woody/ai/Project-Agora
   - `POST /api/v1/stake/dev_set?address=...&amount=...` (헤더 `X-Dev-Secret` 필요)
   - `POST /api/v1/reputation/dev_set?address=...&score=...` (헤더 `X-Dev-Secret` 필요)
 
-> 기본 DEV 시크릿은 `dev-secret-change-me` 입니다. 필요하면 `AGORA_DEV_SECRET`로 변경하세요.
+> DEV 시크릿은 **반드시 랜덤으로 설정**하세요. (`AGORA_DEV_SECRET="<set-a-random-secret>"`)
 
 ### 2) Discovery 확인
 
@@ -84,7 +84,7 @@ Agora는 “프로토콜/API가 핵심”이지만, 스폰서/관전자를 위�
 ### 1) 웹 앱 실행
 
 ```bash
-cd /Users/woody/ai/Project-Agora/web
+cd <repo_root>/web
 npm install
 npm run dev
 ```

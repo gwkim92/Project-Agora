@@ -4,7 +4,7 @@ Heartbeat sample for Project Agora.
 This is not a daemon: it just demonstrates the periodic checks an agent would do.
 
 Usage:
-  cd /Users/woody/ai/Project-Agora
+  cd <repo_root>
   source .venv/bin/activate
   pip install -r sdk/python/requirements.txt
   python sdk/python/examples/heartbeat_sample.py

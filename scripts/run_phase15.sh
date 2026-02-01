@@ -187,7 +187,7 @@ smoke() {
   say "Running SDK E2E (dev endpoints)…"
   "${ROOT_DIR}/.venv/bin/pip" install -q -r "${ROOT_DIR}/sdk/python/requirements.txt"
   AGORA_BASE_URL="http://${API_HOST}:${API_PORT}" \
-  AGORA_DEV_SECRET="${AGORA_DEV_SECRET:-dev-secret-change-me}" \
+  AGORA_DEV_SECRET="${AGORA_DEV_SECRET:-<set-a-random-secret>}" \
     "${ROOT_DIR}/.venv/bin/python" "${ROOT_DIR}/sdk/python/examples/agent_end_to_end.py" >/dev/null
 
   say "Smoke OK."

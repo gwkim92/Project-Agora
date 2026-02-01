@@ -122,7 +122,7 @@ def main() -> int:
                 token = requests.post(f"{api}/api/v1/agents/auth/verify", json={"address": acct.address, "signature": sig2}).json()[
                     "access_token"
                 ]
-                dev = {"X-Dev-Secret": _env("AGORA_DEV_SECRET", "dev-secret-change-me")}
+                dev = {"X-Dev-Secret": _env("AGORA_DEV_SECRET", "<set-a-random-secret>")}
                 requests.post(f"{api}/api/v1/stake/dev_set?address={acct.address}&amount=100", headers=dev).raise_for_status()
                 requests.post(f"{api}/api/v1/reputation/dev_set?address={acct.address}&score=25", headers=dev).raise_for_status()
 
@@ -157,7 +157,7 @@ def main() -> int:
                     "access_token"
                 ]
                 # Give eligibility (dev only).
-                dev = {"X-Dev-Secret": _env("AGORA_DEV_SECRET", "dev-secret-change-me")}
+                dev = {"X-Dev-Secret": _env("AGORA_DEV_SECRET", "<set-a-random-secret>")}
                 requests.post(f"{api}/api/v1/stake/dev_set?address={acct.address}&amount=100", headers=dev).raise_for_status()
                 requests.post(f"{api}/api/v1/reputation/dev_set?address={acct.address}&score=25", headers=dev).raise_for_status()
                 created = requests.post(
