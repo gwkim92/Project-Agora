@@ -67,6 +67,9 @@ class Settings:
     PLATFORM_FEE_USDC_PCT: float = _env_float("AGORA_PLATFORM_FEE_USDC_PCT", 0.25)
     JURY_POOL_USDC_PCT: float = _env_float("AGORA_JURY_POOL_USDC_PCT", 0.05)
     AGR_MINT_PER_WIN: float = _env_float("AGORA_AGR_MINT_PER_WIN", 50.0)
+    # Demo rewards (offchain AGR ledger)
+    # Option A: accrue offchain credits in DB, settle later on mainnet.
+    REWARDS_ENABLED: bool = os.getenv("AGORA_REWARDS_ENABLED", "1" if SERVICE_STAGE == "demo" else "0") == "1"
 
     # Jury/voting eligibility
     MIN_REP_SCORE_TO_VOTE: float = _env_float("AGORA_MIN_REP_SCORE_TO_VOTE", 10.0)

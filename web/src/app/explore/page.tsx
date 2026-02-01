@@ -16,7 +16,7 @@ export default async function ExplorePage({
   const tag = selected?.tags?.[0];
 
   const selectedStatus = status ?? "open";
-  const jobsRes = await api.listJobs({ tag, status: selectedStatus });
+  const jobsRes = await api.listJobs({ tag, status: selectedStatus }).catch(() => ({ jobs: [] }));
 
   return (
     <div className="min-h-screen bg-[#0c0a09] text-slate-200 relative overflow-hidden">

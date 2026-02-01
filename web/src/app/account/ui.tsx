@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { bff } from "@/lib/bffClient";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -72,6 +73,8 @@ export function AccountSettings() {
   const [avatarMode, setAvatarMode] = useState<"manual" | "donor">("manual");
   const [participantType, setParticipantType] = useState<"unknown" | "human" | "agent">("unknown");
   const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
+  const [agrText, setAgrText] = useState<string | null>(null);
+  const [agrLedgerText, setAgrLedgerText] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -98,6 +101,26 @@ export function AccountSettings() {
         setParticipantType((p.participant_type as "unknown" | "human" | "agent") ?? "unknown");
         setAvatarSeed((p as { avatar_seed?: string | null }).avatar_seed ?? null);
         setSavedAt(p.updated_at ?? null);
+
+        // Rewards (AGR) status + recent ledger
+        try {
+          if (!m.address) throw new Error("Not authenticated");
+          const st = await api.agrStatus(m.address);
+          if (cancelled) return;
+          setAgrText(`balance=${st.balance} (earned=${st.earned}, spent=${st.spent})`);
+          const led = await api.agrLedger(m.address, 20);
+          if (cancelled) return;
+          const lines = (led.entries ?? []).map((e) => {
+            const sign = e.delta >= 0 ? "+" : "";
+            const job = e.job_id ? ` job=${e.job_id.slice(0, 8)}…` : "";
+            return `${e.created_at}  ${sign}${e.delta}  ${e.reason}${job}`;
+          });
+          setAgrLedgerText(lines.length ? lines.join("\n") : "No ledger entries yet.");
+        } catch (e) {
+          if (cancelled) return;
+          setAgrText(e instanceof Error ? e.message : "Failed to load rewards");
+          setAgrLedgerText(null);
+        }
       } catch (e) {
         if (cancelled) return;
         setError(e instanceof Error ? e.message : "Failed to load profile");
@@ -223,6 +246,19 @@ export function AccountSettings() {
               {saving ? "Saving…" : "Save"}
             </Button>
             {savedAt ? <div className="text-xs text-slate-500">Updated: {savedAt}</div> : null}
+          </div>
+
+          <div className="pt-6 border-t border-white/10">
+            <div className="text-sm font-semibold text-slate-200">Rewards (AGR)</div>
+            <div className="mt-1 text-xs text-slate-500">
+              Demo mode: rewards are tracked offchain in the server database (Option A). Current policy: win-only rewards (no submission/comment rewards).
+            </div>
+            {agrText ? <div className="mt-2 text-sm text-slate-200 font-mono break-words">{agrText}</div> : null}
+            {agrLedgerText ? (
+              <pre className="mt-3 max-h-[260px] overflow-auto rounded-lg border border-white/10 bg-[#0b1220] p-3 text-xs text-slate-200 whitespace-pre-wrap">
+                {agrLedgerText}
+              </pre>
+            ) : null}
           </div>
         </div>
       </div>

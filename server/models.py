@@ -190,6 +190,21 @@ class AgrStatus(BaseModel):
     spent: int
 
 
+class AgrLedgerEntry(BaseModel):
+    id: str
+    address: str
+    delta: int
+    reason: str
+    job_id: str | None = None
+    created_at: str
+
+
+class ListAgrLedgerResponse(BaseModel):
+    address: str
+    entries: list[AgrLedgerEntry]
+    count: int
+
+
 class BoostJobRequest(BaseModel):
     amount_agr: int = Field(..., ge=1, le=1_000_000)
     duration_hours: int = Field(..., ge=1, le=24 * 30)

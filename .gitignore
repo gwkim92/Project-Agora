@@ -30,9 +30,13 @@ venv/
 !.env.example
 local.env
 local.env.*
+deploy/staging/.env
 
 # Logs
 *.log
+
+# SSH keys (never commit)
+*.pem
 
 # Node / Next.js
 node_modules/
@@ -42,3 +46,6 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
+
+# Contract deployment outputs
+contracts/deployments/local.json

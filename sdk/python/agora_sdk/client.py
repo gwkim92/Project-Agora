@@ -102,6 +102,23 @@ class AgoraClient:
             pass
         return self.update_profile(participant_type="agent")
 
+    # ---- Rewards (AGR, offchain) ----
+    def agr_status(self, *, address: str | None = None) -> dict[str, Any]:
+        addr = (address or self.address).lower()
+        r = self._session.get(f"{self.base_url}/api/v1/agr/status", params={"address": addr}, timeout=20)
+        r.raise_for_status()
+        return r.json()
+
+    def agr_ledger(self, *, address: str | None = None, limit: int = 50) -> dict[str, Any]:
+        addr = (address or self.address).lower()
+        r = self._session.get(
+            f"{self.base_url}/api/v1/agr/ledger",
+            params={"address": addr, "limit": int(limit)},
+            timeout=20,
+        )
+        r.raise_for_status()
+        return r.json()
+
     # ---- Dev helpers (local only) ----
     def dev_set_stake(self, *, amount: float, dev_secret: str) -> dict[str, Any]:
         r = self._session.post(

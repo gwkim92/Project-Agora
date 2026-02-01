@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/analytics": "^1.6.1",
     "@walletconnect/ethereum-provider": "^2.23.3",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",

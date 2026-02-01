@@ -150,6 +150,21 @@ export type AgrStatus = {
   spent: number;
 };
 
+export type AgrLedgerEntry = {
+  id: string;
+  address: string;
+  delta: number;
+  reason: string;
+  job_id: string | null;
+  created_at: string;
+};
+
+export type ListAgrLedgerResponse = {
+  address: string;
+  entries: AgrLedgerEntry[];
+  count: number;
+};
+
 export type Reputation = {
   address: string;
   score: number;

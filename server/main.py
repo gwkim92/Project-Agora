@@ -64,6 +64,7 @@ from server.models import (
     ListProfilesResponse,
     AnchorBatch,
     RecordAnchorReceiptRequest,
+    PrepareAnchorTxResponse,
     OnchainCursor,
     ListOnchainCursorsResponse,
     SetOnchainCursorRequest,
@@ -82,6 +83,8 @@ from server.models import (
     ListSlashingEventsResponse,
     SlashingEvent,
     AgrStatus,
+    AgrLedgerEntry,
+    ListAgrLedgerResponse,
     AgentBootstrapResponse,
     AgentSpecLinks,
     BoostJobRequest,
@@ -1111,6 +1114,18 @@ def agr_status(address: str = Query(..., description="EVM address"), store: Anno
     return AgrStatus(**st)
 
 
+@app.get("/api/v1/agr/ledger", response_model=ListAgrLedgerResponse)
+def agr_ledger(
+    address: str = Query(..., description="EVM address"),
+    limit: int = Query(50, ge=1, le=200),
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> ListAgrLedgerResponse:
+    addr = normalize_address(address)
+    rows = store.list_agr_ledger(address=addr, limit=int(limit))
+    entries = [AgrLedgerEntry(**r) for r in rows]
+    return ListAgrLedgerResponse(address=addr, entries=entries, count=len(entries))
+
+
 @app.post("/api/v1/agr/dev_mint", response_model=AgrStatus)
 def dev_mint_agr(
     address: str,
@@ -1619,6 +1634,18 @@ def create_vote(req: CreateVoteRequest, voter: CurrentAgent) -> CreateVoteRespon
     if not any(s.get("id") == req.submission_id for s in subs):
         raise HTTPException(status_code=400, detail="Invalid submission_id for job")
 
+    # Sacred Agora rule: no self-voting. You cannot vote for your own submission.
+    try:
+        sub = next((x for x in subs if str(x.get("id") or "") == str(req.submission_id)), None)
+        author = normalize_address(str((sub or {}).get("agent_address") or ""))
+        if author and author == normalize_address(voter):
+            raise HTTPException(status_code=403, detail="Self-voting is not allowed")
+    except HTTPException:
+        raise
+    except Exception:
+        # Fail safe: if we can't determine author, do not block.
+        pass
+
     vote_obj = Vote(
         id="",
         job_id=req.job_id,
@@ -1685,6 +1712,18 @@ def create_final_vote(req: CreateFinalVoteRequest, voter: CurrentAgent) -> Creat
     if not any(sub.get("id") == req.submission_id for sub in subs):
         raise HTTPException(status_code=400, detail="Invalid submission_id for job")
 
+    # Sacred Agora rule: no self-voting. You cannot vote for your own submission.
+    try:
+        sub = next((x for x in subs if str(x.get("id") or "") == str(req.submission_id)), None)
+        author = normalize_address(str((sub or {}).get("agent_address") or ""))
+        if author and author == normalize_address(voter):
+            raise HTTPException(status_code=403, detail="Self-voting is not allowed")
+    except HTTPException:
+        raise
+    except Exception:
+        # Fail safe: if we can't determine author, do not block.
+        pass
+
     saved = s.upsert_final_vote(job_id=req.job_id, voter_address=voter, submission_id=req.submission_id)
     return CreateFinalVoteResponse(vote=FinalVote(**saved))
 
@@ -1736,6 +1775,32 @@ def close_job(job_id: str, req: CloseJobRequest, caller: CurrentAgent) -> CloseJ
         close_block_number=req.close_block_number,
         close_log_index=req.close_log_index,
     )
+
+    # Demo rewards (Option A): mint offchain AGR credits to the winning submission author.
+    if settings.REWARDS_ENABLED and int(settings.AGR_MINT_PER_WIN) > 0:
+        try:
+            winner = next((sub for sub in subs if str(sub.get("id") or "") == str(req.winner_submission_id)), None)
+            winner_addr = normalize_address(str((winner or {}).get("agent_address") or ""))
+            if winner_addr:
+                # Idempotency guard (best-effort): avoid duplicate win rewards for the same job/address.
+                already = False
+                try:
+                    rows = s.list_agr_ledger(address=winner_addr, limit=500)
+                    already = any(
+                        str(r.get("reason") or "").lower() == "win" and str(r.get("job_id") or "") == str(job_id)
+                        for r in (rows or [])
+                    )
+                except Exception:
+                    already = False
+                if not already:
+                    s.agr_credit(
+                        address=winner_addr,
+                        amount=int(settings.AGR_MINT_PER_WIN),
+                        reason="win",
+                        job_id=str(job_id),
+                    )
+        except Exception:
+            pass
 
     # Phase 2 anchoring: create canonical snapshot + root/uri (offchain).
     # Onchain posting is done separately by the operator Safe; receipt is recorded later.
@@ -1846,6 +1911,32 @@ def finalize_job(job_id: str, voter: CurrentAgent) -> CloseJobResponse:
 
     # close using existing close flow (no onchain anchors here)
     job = s.close_job(job_id, winner_submission_id, utc_now_iso())
+
+    # Demo rewards (Option A): mint offchain AGR credits to the winning submission author.
+    if settings.REWARDS_ENABLED and int(settings.AGR_MINT_PER_WIN) > 0:
+        try:
+            winner_sub = s.get_submission(winner_submission_id)
+            winner_addr = normalize_address(str((winner_sub or {}).get("agent_address") or ""))
+            if winner_addr:
+                # Idempotency guard (best-effort): avoid duplicate win rewards for the same job/address.
+                already = False
+                try:
+                    rows = s.list_agr_ledger(address=winner_addr, limit=500)
+                    already = any(
+                        str(r.get("reason") or "").lower() == "win" and str(r.get("job_id") or "") == str(job_id)
+                        for r in (rows or [])
+                    )
+                except Exception:
+                    already = False
+                if not already:
+                    s.agr_credit(
+                        address=winner_addr,
+                        amount=int(settings.AGR_MINT_PER_WIN),
+                        reason="win",
+                        job_id=str(job_id),
+                    )
+        except Exception:
+            pass
     summary = job_votes(job_id)
     return CloseJobResponse(job=Job(**job), winner_submission_id=winner_submission_id, voting_summary=summary)
 

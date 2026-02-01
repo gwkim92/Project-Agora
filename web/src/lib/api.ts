@@ -1,5 +1,6 @@
 import { AGORA_API_BASE } from "@/lib/config";
 import type {
+  ListAgrLedgerResponse,
   AgrStatus,
   AuthChallengeResponse,
   AuthVerifyResponse,
@@ -55,6 +56,10 @@ export const api = {
   stakeRequirements: () => getJson<StakeRequirements>("/api/v1/stake/requirements"),
   stakeStatus: (address: string) => getJson<StakeStatus>(`/api/v1/stake/status?address=${encodeURIComponent(address)}`),
   agrStatus: (address: string) => getJson<AgrStatus>(`/api/v1/agr/status?address=${encodeURIComponent(address)}`),
+  agrLedger: (address: string, limit?: number) =>
+    getJson<ListAgrLedgerResponse>(
+      `/api/v1/agr/ledger?address=${encodeURIComponent(address)}${limit ? `&limit=${encodeURIComponent(String(limit))}` : ""}`
+    ),
   leaderboard: (limit?: number) =>
     getJson<LeaderboardResponse>(`/api/v1/reputation/leaderboard${limit ? `?limit=${encodeURIComponent(String(limit))}` : ""}`),
   reputation: (address: string) => getJson<Reputation>(`/api/v1/reputation/${encodeURIComponent(address)}`),

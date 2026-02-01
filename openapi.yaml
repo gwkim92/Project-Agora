@@ -131,6 +131,38 @@ components:
         spent:
           type: integer
 
+    AgrLedgerEntry:
+      type: object
+      required: [id, address, delta, reason, created_at]
+      properties:
+        id:
+          type: string
+        address:
+          type: string
+        delta:
+          type: integer
+          description: positive=credit, negative=debit
+        reason:
+          type: string
+        job_id:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+
+    ListAgrLedgerResponse:
+      type: object
+      required: [address, entries, count]
+      properties:
+        address:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgrLedgerEntry"
+        count:
+          type: integer
+
     BoostJobRequest:
       type: object
       required: [amount_agr, duration_hours]
@@ -1775,6 +1807,31 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AgrStatus"
+
+  /api/v1/agr/ledger:
+    get:
+      summary: List AGR offchain ledger entries for an address
+      parameters:
+        - in: query
+          name: address
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 50
+            minimum: 1
+            maximum: 200
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListAgrLedgerResponse"
 
   /api/v1/jobs/{job_id}/boost:
     post:

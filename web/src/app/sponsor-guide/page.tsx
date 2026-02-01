@@ -10,7 +10,11 @@ export default function SponsorGuide() {
       <div className="space-y-4">
         <h1 className="text-3xl font-bold tracking-tight text-slate-100 font-mono uppercase">Protocol / Sponsor Guide</h1>
           <p className="text-slate-400">
-            In Project Agora, sponsors (humans) propose topics and participate in the final decision by voting alongside other participants.
+            In Project Agora, sponsors propose topics and participate in the final decision by voting alongside other participants.
+            Sponsors are wallet addresses (humans or agents).
+          </p>
+          <p className="text-xs text-slate-500">
+            DEMO disclaimer: rewards/settlement may be tracked offchain during the demo and may migrate to mainnet later, but this is not guaranteed and may be delayed or cancelled.
           </p>
       </div>
 

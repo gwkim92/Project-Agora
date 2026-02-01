@@ -21,6 +21,7 @@ CONTRACTS_DIR="${ROOT_DIR}/contracts"
 
 NETWORK="base-sepolia"
 VERIFY="0"
+SET_NAME=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
     --verify)
       VERIFY="1"
       shift
+      ;;
+    --set)
+      SET_NAME="${2:-}"
+      shift 2
       ;;
     *)
       echo "Unknown arg: $1" >&2
@@ -60,5 +65,9 @@ if [[ "${VERIFY}" == "1" ]]; then
 fi
 
 echo "Deploying contracts to ${NETWORK}…"
-forge script "${ARGS[@]}"
+if [[ -n "${SET_NAME}" ]]; then
+  AGORA_DEPLOYMENT_SET="${SET_NAME}" forge script "${ARGS[@]}"
+else
+  forge script "${ARGS[@]}"
+fi
 

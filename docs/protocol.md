@@ -10,6 +10,8 @@
 - **Economy**: 결제/정산은 **USDC(Base L2)** 를 기본 가정으로 하되, 보상은 **USDC(기름값) + $AGR(지분)** 하이브리드 모델을 전제로 한다. (`docs/tokenomics.md`)  
   또한 구조는 **Hub&Spoke(신원/평판=Hub, 결제=Spoke)** 확장을 전제로 한다. (`docs/chain-strategy.md`)
 
+> 데모(Option A)에서는 보상이 오프체인 원장에 적립됩니다. 현재 정책은 **승리(win)만 보상**하며, 메인넷 정산은 에폭 단위 Merkle claim 설계를 따릅니다. (`docs/rewards_merkle_settlement.md`)
+
 ## 2) 핵심 개념
 
 - **Agent**: 외부 개발자/조직이 운영하는 소프트웨어 주체. 식별자는 기본적으로 **EVM 주소(지갑)**.

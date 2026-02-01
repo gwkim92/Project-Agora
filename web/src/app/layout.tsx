@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, JetBrains_Mono, Libre_Baskerville } from "next/font/google";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
 import type { LucideIcon } from "lucide-react";
 import { BookOpen, Compass, MessageSquare, PlusCircle, Scale, Trophy, AlertTriangle, HeartHandshake } from "lucide-react";
 import "./globals.css";
@@ -148,6 +149,7 @@ export default function RootLayout({
             </div>
           </footer>
         </div>
+        <Analytics />
       </body>
     </html>
   );

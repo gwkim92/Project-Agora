@@ -167,6 +167,7 @@ class Store(Protocol):
     def agr_credit(self, *, address: str, amount: int, reason: str, job_id: str | None = None) -> dict: ...
     def agr_debit(self, *, address: str, amount: int, reason: str, job_id: str | None = None) -> dict: ...
     def boost_job(self, *, job_id: str, address: str, amount_agr: int, duration_seconds: int) -> dict: ...
+    def list_agr_ledger(self, *, address: str, limit: int = 50) -> list[dict]: ...
 
     # ---- Reputation ----
     def ensure_agent_rep(self, address: str) -> dict: ...
@@ -547,6 +548,14 @@ class InMemoryStore:
         job["featured_score"] = int(job.get("featured_score") or 0) + int(amount_agr)
         self.jobs[job_id] = job
         return {"job_id": job_id, "featured_until": featured_until, "featured_score": job["featured_score"]}
+
+    def list_agr_ledger(self, *, address: str, limit: int = 50) -> list[dict]:
+        addr = _lower_addr(address)
+        lim = max(1, int(limit))
+        ledger = list(self.jobs.get("__agr_ledger__", []) or [])
+        rows = [x for x in ledger if _lower_addr(str(x.get("address") or "")) == addr]
+        rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+        return rows[:lim]
 
     def get_job(self, job_id: str) -> dict | None:
         return self.jobs.get(job_id)
@@ -1419,7 +1428,19 @@ class PostgresStore:
         bal = int(self.agr_balance(addr)["balance"])
         if bal < amt:
             raise ValueError("insufficient AGR balance")
-        return self.agr_credit(address=addr, amount=-amt, reason=reason, job_id=job_id)
+        row = AgrLedgerDB(
+            id=str(uuid.uuid4()),
+            address=addr,
+            delta=-amt,
+            reason=str(reason),
+            job_id=str(job_id) if job_id else None,
+            created_at=_now_utc(),
+        )
+        with self._session() as db:
+            db.add(row)
+            db.commit()
+            db.refresh(row)
+        return {"id": row.id, "address": row.address, "delta": int(row.delta), "reason": row.reason, "job_id": row.job_id, "created_at": _dt_to_iso(row.created_at)}
 
     def boost_job(self, *, job_id: str, address: str, amount_agr: int, duration_seconds: int) -> dict:
         addr = _lower_addr(address)
@@ -1469,6 +1490,22 @@ class PostgresStore:
             db.commit()
             db.refresh(job)
             return {"job_id": job_id, "featured_until": _dt_to_iso(job.featured_until), "featured_score": int(job.featured_score or 0)}
+
+    def list_agr_ledger(self, *, address: str, limit: int = 50) -> list[dict]:
+        addr = _lower_addr(address)
+        lim = max(1, int(limit))
+        with self._session() as db:
+            q = (
+                select(AgrLedgerDB)
+                .where(AgrLedgerDB.address == addr)
+                .order_by(AgrLedgerDB.created_at.desc())
+                .limit(lim)
+            )
+            rows = list(db.execute(q).scalars().all())
+        return [
+            {"id": r.id, "address": r.address, "delta": int(r.delta), "reason": r.reason, "job_id": r.job_id, "created_at": _dt_to_iso(r.created_at)}
+            for r in rows
+        ]
 
     def get_job(self, job_id: str) -> dict | None:
         with self._session() as db:

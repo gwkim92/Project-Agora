@@ -21,7 +21,12 @@ COPY docs /app/docs
 
 EXPOSE 8000
 
+# Entrypoint runs Alembic migrations when DATABASE_URL is set.
+COPY server/entrypoint.sh /app/server/entrypoint.sh
+RUN chmod +x /app/server/entrypoint.sh
+
 # Production-ish default: single process, multiple workers via uvicorn.
 # If you prefer gunicorn, add it to requirements and swap the CMD.
+ENTRYPOINT ["/app/server/entrypoint.sh"]
 CMD ["uvicorn", "server.main:app", "--host", "0.0.0.0", "--port", "8000"]
 
