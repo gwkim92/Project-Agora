@@ -17,6 +17,8 @@ COPY server /app/server
 COPY openapi.yaml /app/openapi.yaml
 COPY llms.txt /app/llms.txt
 COPY agora-agent-manifest.json /app/agora-agent-manifest.json
+COPY agents.json /app/agents.json
+COPY .well-known /app/.well-known
 COPY docs /app/docs
 
 EXPOSE 8000
