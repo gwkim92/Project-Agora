@@ -21,12 +21,15 @@ htmlcov/
 
 # Virtualenv
 .venv/
+.agora-dev
 venv/
 
 # Env / secrets
 .env
 .env.*
 !.env.example
+local.env
+local.env.*
 
 # Logs
 *.log

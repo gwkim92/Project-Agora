@@ -23,7 +23,7 @@ const TabsList = React.forwardRef<
   <div
     ref={ref}
     className={cn(
-      "inline-flex h-10 items-center justify-center rounded-md bg-slate-900/50 p-1 text-slate-400 border border-slate-800",
+      "inline-flex h-12 items-center justify-center rounded-full bg-white/5 p-1 text-slate-400 border border-white/5",
       className
     )}
     {...props}
@@ -38,8 +38,8 @@ const TabsTrigger = React.forwardRef<
   <button
     ref={ref}
     className={cn(
-      "inline-flex items-center justify-center whitespace-nowrap rounded-sm px-3 py-1.5 text-sm font-medium ring-offset-background transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
-      active ? "bg-indigo-600 text-white shadow-sm" : "hover:bg-slate-800 hover:text-slate-200",
+      "inline-flex items-center justify-center whitespace-nowrap rounded-full px-6 py-2 text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50 font-serif tracking-wide",
+      active ? "bg-[#f1f5f9] text-[#0f172a] shadow-sm" : "hover:text-white hover:bg-white/5",
       className
     )}
     {...props}
@@ -56,7 +56,7 @@ const TabsContent = React.forwardRef<
     <div
       ref={ref}
       className={cn(
-        "mt-4 ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 animate-in fade-in-0 zoom-in-95 duration-200",
+        "mt-6 ring-offset-background focus-visible:outline-none animate-in fade-in-0 zoom-in-95 duration-300",
         className
       )}
       {...props}

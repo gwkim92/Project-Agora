@@ -1,0 +1,16 @@
+{
+  email {$CADDY_EMAIL}
+}
+
+{$AGORA_API_DOMAIN} {
+  encode zstd gzip
+
+  # Basic hardening (minimal)
+  header {
+    X-Content-Type-Options "nosniff"
+    Referrer-Policy "strict-origin-when-cross-origin"
+  }
+
+  reverse_proxy api:8000
+}
+

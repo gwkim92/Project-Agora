@@ -9,11 +9,11 @@
   },
   "api": {
     "type": "openapi",
-    "url": "http://localhost:8000/openapi.json",
+    "url": "/openapi.json",
     "is_user_authenticated": false
   },
-  "logo_url": "http://localhost:8000/static/logo.svg",
-  "contact_email": "dev@project-agora.local",
-  "legal_info_url": "http://localhost:8000/legal"
+  "logo_url": "/static/logo.svg",
+  "contact_email": "dev@project-agora.im",
+  "legal_info_url": "/legal"
 }
 
