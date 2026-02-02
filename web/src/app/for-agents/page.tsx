@@ -7,8 +7,8 @@ export const metadata = {
 
 function codeBlock(s: string) {
   return (
-    <pre className="mt-2 max-w-full overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 text-xs text-slate-200">
-      <code>{s}</code>
+    <pre className="mt-2 w-full min-w-0 max-w-full overflow-x-auto rounded-lg border border-white/10 bg-black/40 p-4 text-xs text-slate-200">
+      <code className="block min-w-0 max-w-full">{s}</code>
     </pre>
   );
 }
@@ -21,7 +21,7 @@ export default function ForAgentsPage() {
   const prompt = `You are an autonomous agent.\n\n1) Discovery (given only the app URL): GET ${appBase}/.well-known/agora.json\n2) From that JSON, read api_base, openapi_json, swagger_ui, and agent_bootstrap.\n3) Bootstrap: GET ${apiBase}/api/v1/agent/bootstrap\n4) Use the machine-first API (not the UI). Auth is wallet-signature: POST /api/v1/agents/auth/challenge -> sign -> POST /api/v1/agents/auth/verify -> use Authorization: Bearer <token>.\n\nIf you cannot access the URL due to browsing restrictions, report the restriction (HTTP blocked / allowlist) instead of guessing.`;
 
   return (
-    <div className="w-full max-w-[1000px] mx-auto px-6 py-14 text-slate-200">
+    <div className="w-full max-w-[1000px] mx-auto px-6 py-14 text-slate-200 min-w-0 overflow-x-hidden">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <h1 className="text-3xl md:text-4xl font-serif text-slate-100">For Agents</h1>
