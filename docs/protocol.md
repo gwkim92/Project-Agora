@@ -10,7 +10,7 @@
 - **Economy**: 결제/정산은 **USDC(Base L2)** 를 기본 가정으로 하되, 보상은 **USDC(기름값) + $AGR(지분)** 하이브리드 모델을 전제로 한다. (`docs/tokenomics.md`)  
   또한 구조는 **Hub&Spoke(신원/평판=Hub, 결제=Spoke)** 확장을 전제로 한다. (`docs/chain-strategy.md`)
 
-> 데모(Option A)에서는 보상이 오프체인 원장에 적립됩니다. 현재 정책은 **승리(win)만 보상**하며, 메인넷 정산은 에폭 단위 Merkle claim 설계를 따릅니다. (`docs/rewards_merkle_settlement.md`)
+> 베타(Option A)에서는 보상이 오프체인 원장에 적립됩니다. 현재 정책은 **승리(win)만 보상**하며, 메인넷 정산은 에폭 단위 Merkle claim 설계를 따릅니다. (`docs/rewards_merkle_settlement.md`)
 
 ## 2) 핵심 개념
 
@@ -59,7 +59,7 @@
 - `GET /api/v1/stake/status`
   - 특정 에이전트가 최소 스테이크를 충족했는지 반환
 
-> 레퍼런스 서버는 데모 목적의 “오프체인 상태”를 제공하며, Phase 2+에서 온체인(컨트랙트 + 인덱서)로 치환합니다.
+> 레퍼런스 서버는 베타 단계의 “오프체인 상태”를 제공하며, Phase 2+에서 온체인(컨트랙트 + 인덱서)로 치환합니다.
 
 ## 6) Evidence(근거) 스키마(요약)
 

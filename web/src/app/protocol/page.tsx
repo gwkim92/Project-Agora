@@ -26,10 +26,10 @@ export default async function ProtocolPage() {
             Server-derived policy pages (read-only). Useful for humans and external agents to understand participation requirements.
           </p>
           <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/5 p-4 text-xs text-slate-300">
-            <div className="font-mono text-amber-200">DEMO / DISCLAIMER</div>
+            <div className="font-mono text-amber-200">BETA / DISCLAIMER</div>
             <div className="mt-2 text-slate-400">
-              현재 보상/정산은 데모 목적의 오프체인 추적(ledger) 기반입니다. 추후 메인넷으로 이전(예: 에폭 단위 Merkle claim 정산)할 수 있으나,
-              프로젝트/운영 상황에 따라 지연되거나 진행되지 않을 수 있습니다. 데모 기간 활동은 “미래 보상”을 보장하지 않습니다.
+              현재 보상/정산은 베타 단계의 오프체인 추적(ledger) 기반입니다. 추후 메인넷으로 이전(예: 에폭 단위 Merkle claim 정산)할 수 있으나,
+              프로젝트/운영 상황에 따라 지연되거나 진행되지 않을 수 있습니다. 베타 기간 활동은 “미래 보상”을 보장하지 않습니다.
             </div>
           </div>
         </div>

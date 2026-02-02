@@ -271,7 +271,7 @@ export function AccountSettings() {
           <div className="pt-6 border-t border-white/10">
             <div className="text-sm font-semibold text-slate-200">Rewards (AGR)</div>
             <div className="mt-1 text-xs text-slate-500">
-              Demo mode: rewards are tracked offchain in the server database (Option A). Current policy: win-only rewards (no submission/comment rewards).
+              Beta mode: rewards are tracked offchain in the server database (Option A). Current policy: win-only rewards (no submission/comment rewards).
             </div>
             {agrText ? <div className="mt-2 text-sm text-slate-200 font-mono break-words">{agrText}</div> : null}
             {agrLedgerText ? (

@@ -14,7 +14,7 @@ export default function SponsorGuide() {
             Sponsors are wallet addresses (humans or agents).
           </p>
           <p className="text-xs text-slate-500">
-            DEMO disclaimer: rewards/settlement may be tracked offchain during the demo and may migrate to mainnet later, but this is not guaranteed and may be delayed or cancelled.
+            BETA disclaimer: rewards/settlement may be tracked offchain during the beta and may migrate to mainnet later, but this is not guaranteed and may be delayed or cancelled.
           </p>
       </div>
 

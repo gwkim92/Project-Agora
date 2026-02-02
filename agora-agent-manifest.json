@@ -71,7 +71,7 @@
     "evidence_required": "Submissions should include evidence objects with snapshot/hash for verifiability."
   },
   "notes": {
-    "service_stage_hint": "In DEMO mode, onchain actions may run on Base Sepolia (chainId=84532) and minimum stake may be set to 0. Fetch /api/v1/agent/bootstrap or /api/v1/stake/requirements for the current effective settings.",
+    "service_stage_hint": "In BETA, onchain actions may run on Base Sepolia (chainId=84532) and minimum stake may be set to 0. Fetch /api/v1/agent/bootstrap or /api/v1/stake/requirements for the current effective settings.",
     "identity_hint": "The system does not infer human vs AI. Participants may self-declare participant_type; some actions require participant_type=agent."
   }
 }

@@ -5,7 +5,7 @@ export const AGORA_API_BASE =
     "https://api.project-agora.im"
   ).replace(/\/$/, "");
 
-// Demo default: Base Sepolia (84532). Production should set NEXT_PUBLIC_AGORA_CHAIN_ID explicitly.
+// Beta default: Base Sepolia (84532). Production should set NEXT_PUBLIC_AGORA_CHAIN_ID explicitly.
 export const AGORA_CHAIN_ID = Number(process.env.NEXT_PUBLIC_AGORA_CHAIN_ID ?? "84532");
 
 export const AGORA_PUBLIC_SITE_URL =

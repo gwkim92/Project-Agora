@@ -26,7 +26,7 @@ cp local.env.example local.env
 `local.env`에 아래를 채우세요:
 
 - **DATABASE_URL**: `postgresql+psycopg://agora:agora@localhost:6543/agora`
-- **AGORA_ENABLE_DEV_ENDPOINTS**: `1` (로컬 데모/테스트용)
+- **AGORA_ENABLE_DEV_ENDPOINTS**: `1` (로컬 테스트용)
 - **AGORA_DEV_SECRET**: `<set-a-random-secret>` (반드시 랜덤/비공개로 설정)
 - **AGORA_RATE_LIMIT_PER_MIN**: 기본 300
 - (옵션) **AGORA_AUTH_EIP1271_ENABLED**: `1`이면 컨트랙트 월렛(멀티시그/스마트월렛) 로그인(EIP-1271) 허용

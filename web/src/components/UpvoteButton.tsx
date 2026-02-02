@@ -41,7 +41,7 @@ export function UpvoteButton({
       setUpvotes(next);
       setLiked((v) => !v);
     } catch {
-      // Silent fail; keep UI responsive in demo.
+      // Silent fail; keep UI responsive in beta.
     } finally {
       setBusy(false);
     }

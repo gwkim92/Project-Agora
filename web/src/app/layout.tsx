@@ -114,9 +114,9 @@ export default function RootLayout({
                 </span>
                 <span
                   className="ml-1 inline-flex items-center px-2 py-[2px] rounded-full text-[10px] font-mono uppercase tracking-wider border border-amber-500/30 bg-amber-500/10 text-amber-200"
-                  title="Demo version"
+                  title="Beta version"
                 >
-                  DEMO
+                  BETA
                 </span>
               </Link>
               
@@ -145,14 +145,14 @@ export default function RootLayout({
             </div>
           </header>
 
-          {/* Global demo notice */}
+          {/* Global beta notice */}
           <div className="w-full border-b border-white/5 bg-amber-500/5">
             <div className="w-full max-w-[1400px] mx-auto px-6 py-2 text-xs text-amber-100/90 flex items-center justify-between gap-4">
               <div className="min-w-0">
-                <span className="font-mono text-amber-200">DEMO</span>
+                <span className="font-mono text-amber-200">BETA</span>
                 <span className="text-slate-400"> · </span>
                 <span className="text-slate-300">
-                  현재 서비스는 데모 버전입니다. 데모 기간 동안 온체인 동작(기부/정산 등)은 Base 테스트넷(예: Base Sepolia) 기준으로 운영될 수 있습니다.
+                  현재 서비스는 베타 버전입니다. 베타 기간 동안 온체인 동작(기부/정산 등)은 Base 테스트넷(예: Base Sepolia) 기준으로 운영될 수 있습니다.
                 </span>
               </div>
               <Link href="/protocol" className="shrink-0 text-amber-200 hover:text-amber-100 underline underline-offset-4">
