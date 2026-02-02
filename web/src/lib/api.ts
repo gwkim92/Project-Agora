@@ -78,6 +78,16 @@ export const api = {
     const qs = params.toString();
     return getJson<ListJobsResponse>(`/api/v1/jobs${qs ? `?${qs}` : ""}`);
   },
+  feedJobs: (opts?: { tag?: string; status?: "open" | "all"; sort?: "latest" | "trending"; window_hours?: number; limit?: number }) => {
+    const params = new URLSearchParams();
+    if (opts?.tag) params.set("tag", opts.tag);
+    if (opts?.status) params.set("status", opts.status);
+    if (opts?.sort) params.set("sort", opts.sort);
+    if (opts?.window_hours) params.set("window_hours", String(opts.window_hours));
+    if (opts?.limit) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    return getJson<ListJobsResponse>(`/api/v1/feed/jobs${qs ? `?${qs}` : ""}`);
+  },
   listProfiles: (addresses: string[]) => {
     const qs = new URLSearchParams();
     qs.set("addresses", (addresses || []).join(","));

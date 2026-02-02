@@ -270,6 +270,63 @@ class CommentDB(Base):
     deleted_by: Mapped[Optional[str]] = mapped_column(String, nullable=True)
 
 
+class ReactionDB(Base):
+    __tablename__ = "reactions"
+    __table_args__ = (
+        UniqueConstraint("actor_address", "target_type", "target_id", "kind", name="uq_reactions_actor_target_kind"),
+        Index("ix_reactions_target_kind_created", "target_type", "target_id", "kind", "created_at"),
+        Index("ix_reactions_actor_created", "actor_address", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    target_type: Mapped[str] = mapped_column(String, nullable=False)  # "job" | "post" | "submission" | "comment"
+    target_id: Mapped[str] = mapped_column(String, nullable=False)
+    kind: Mapped[str] = mapped_column(String, nullable=False)  # "upvote" | "bookmark"
+    actor_address: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=_now_utc, nullable=False
+    )
+
+
+class ViewEventDB(Base):
+    __tablename__ = "view_events"
+    __table_args__ = (
+        # Deduplicate views per viewer per target per hour window.
+        UniqueConstraint("viewer_address", "target_type", "target_id", "window_start", name="uq_views_viewer_target_window"),
+        Index("ix_views_target_created", "target_type", "target_id", "created_at"),
+        Index("ix_views_target_window", "target_type", "target_id", "window_start"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    target_type: Mapped[str] = mapped_column(String, nullable=False)  # "job" | "post" | "submission"
+    target_id: Mapped[str] = mapped_column(String, nullable=False)
+    viewer_address: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    window_start: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=_now_utc, nullable=False
+    )
+
+
+class NotificationDB(Base):
+    __tablename__ = "notifications"
+    __table_args__ = (
+        Index("ix_notifications_recipient_read_created", "recipient_address", "read_at", "created_at"),
+        Index("ix_notifications_target", "target_type", "target_id", "created_at"),
+    )
+
+    id: Mapped[str] = mapped_column(String, primary_key=True)
+    recipient_address: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    actor_address: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    type: Mapped[str] = mapped_column(String, nullable=False)  # "comment" | "job_closed" | "job_finalized" | ...
+    target_type: Mapped[str] = mapped_column(String, nullable=False)  # "job" | "post" | "submission" | "comment"
+    target_id: Mapped[str] = mapped_column(String, nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), default=_now_utc, nullable=False
+    )
+    read_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class DonationEventDB(Base):
     """
     TreasuryVault donation events (idempotent via deterministic id: chain:tx:logIndex).

@@ -331,6 +331,12 @@ components:
           type: string
           nullable: true
           description: UTC RFC3339 timestamp when final decision voting ends (time-locked finality)
+        stats:
+          type: object
+          nullable: true
+          description: Engagement counters (best-effort) for discovery/trending UI.
+          additionalProperties:
+            type: integer
     Post:
       type: object
       required: [id, title, content, author_address, created_at]
@@ -355,6 +361,12 @@ components:
         deleted_by:
           type: string
           nullable: true
+        stats:
+          type: object
+          nullable: true
+          description: Engagement counters (best-effort) for discovery/trending UI.
+          additionalProperties:
+            type: integer
     ListPostsResponse:
       type: object
       required: [posts]
@@ -519,6 +531,133 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Comment"
+    CreateReactionRequest:
+      type: object
+      required: [target_type, target_id, kind]
+      properties:
+        target_type:
+          type: string
+          enum: [job, post, submission, comment]
+        target_id:
+          type: string
+        kind:
+          type: string
+          enum: [upvote, bookmark]
+    CreateReactionResponse:
+      type: object
+      required: [target_type, target_id, kind, stats, created]
+      properties:
+        target_type:
+          type: string
+          enum: [job, post, submission, comment]
+        target_id:
+          type: string
+        kind:
+          type: string
+          enum: [upvote, bookmark]
+        stats:
+          type: object
+          additionalProperties:
+            type: integer
+        created:
+          type: boolean
+    DeleteReactionRequest:
+      type: object
+      required: [target_type, target_id, kind]
+      properties:
+        target_type:
+          type: string
+          enum: [job, post, submission, comment]
+        target_id:
+          type: string
+        kind:
+          type: string
+          enum: [upvote, bookmark]
+    DeleteReactionResponse:
+      type: object
+      required: [target_type, target_id, kind, stats, deleted]
+      properties:
+        target_type:
+          type: string
+          enum: [job, post, submission, comment]
+        target_id:
+          type: string
+        kind:
+          type: string
+          enum: [upvote, bookmark]
+        stats:
+          type: object
+          additionalProperties:
+            type: integer
+        deleted:
+          type: boolean
+    RecordViewRequest:
+      type: object
+      required: [target_type, target_id]
+      properties:
+        target_type:
+          type: string
+          enum: [job, post, submission]
+        target_id:
+          type: string
+    RecordViewResponse:
+      type: object
+      required: [target_type, target_id, counted, stats]
+      properties:
+        target_type:
+          type: string
+          enum: [job, post, submission]
+        target_id:
+          type: string
+        counted:
+          type: boolean
+        stats:
+          type: object
+          additionalProperties:
+            type: integer
+    Notification:
+      type: object
+      required: [id, recipient_address, type, target_type, target_id, payload, created_at]
+      properties:
+        id:
+          type: string
+        recipient_address:
+          type: string
+        actor_address:
+          type: string
+          nullable: true
+        type:
+          type: string
+        target_type:
+          type: string
+        target_id:
+          type: string
+        payload:
+          type: object
+          additionalProperties: true
+        created_at:
+          type: string
+        read_at:
+          type: string
+          nullable: true
+    ListNotificationsResponse:
+      type: object
+      required: [notifications, count]
+      properties:
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
+        count:
+          type: integer
+    MarkNotificationReadResponse:
+      type: object
+      required: [id, read_at]
+      properties:
+        id:
+          type: string
+        read_at:
+          type: string
     Reputation:
       type: object
       required: [address, score, level, wins, losses, last_updated_at]
@@ -1857,6 +1996,217 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/BoostJobResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/feed/jobs:
+    get:
+      summary: List jobs with sorting (latest/trending)
+      parameters:
+        - in: query
+          name: status
+          required: false
+          schema:
+            type: string
+            enum: [open, all]
+            default: open
+        - in: query
+          name: tag
+          required: false
+          schema:
+            type: string
+            nullable: true
+        - in: query
+          name: sort
+          required: false
+          schema:
+            type: string
+            enum: [latest, trending]
+            default: latest
+        - in: query
+          name: window_hours
+          required: false
+          schema:
+            type: integer
+            default: 24
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListJobsResponse"
+
+  /api/v1/feed/posts:
+    get:
+      summary: List posts with sorting (latest/trending)
+      parameters:
+        - in: query
+          name: tag
+          required: false
+          schema:
+            type: string
+            nullable: true
+        - in: query
+          name: sort
+          required: false
+          schema:
+            type: string
+            enum: [latest, trending]
+            default: latest
+        - in: query
+          name: window_hours
+          required: false
+          schema:
+            type: integer
+            default: 24
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListPostsResponse"
+
+  /api/v1/reactions:
+    post:
+      summary: Create a reaction (upvote/bookmark)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateReactionRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateReactionResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+    delete:
+      summary: Delete a reaction (upvote/bookmark)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteReactionRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteReactionResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/views:
+    post:
+      summary: Record a view event (deduped per viewer per hour)
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordViewRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecordViewResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/notifications:
+    get:
+      summary: List notifications for the authenticated address
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: unread_only
+          required: false
+          schema:
+            type: boolean
+            default: false
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ListNotificationsResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/notifications/{notification_id}/read:
+    post:
+      summary: Mark a notification as read
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: notification_id
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MarkNotificationReadResponse"
         "401":
           description: Unauthorized
           content:

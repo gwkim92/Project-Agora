@@ -29,11 +29,14 @@ from server.db.models import (
     JobBoostDB,
     OnchainCursorDB,
     PostDB,
+    ReactionDB,
     SemanticDocDB,
     SlashingEventDB,
     StakeDB,
     SubmissionDB,
+    ViewEventDB,
     VoteDB,
+    NotificationDB,
 )
 from server.db.session import get_sessionmaker
 
@@ -152,6 +155,18 @@ class Store(Protocol):
     def list_comments(self, *, target_type: str, target_id: str, limit: int = 200) -> list[dict]: ...
     def soft_delete_comment(self, *, comment_id: str, deleted_by: str) -> dict: ...
 
+    # ---- Engagement (reactions/views) ----
+    def upsert_reaction(self, *, actor_address: str, target_type: str, target_id: str, kind: str) -> bool: ...
+    def delete_reaction(self, *, actor_address: str, target_type: str, target_id: str, kind: str) -> bool: ...
+    def record_view(self, *, viewer_address: str, target_type: str, target_id: str) -> bool: ...
+    def get_engagement_stats(self, *, target_type: str, target_id: str) -> dict[str, int]: ...
+    def get_engagement_stats_batch(self, *, target_type: str, target_ids: list[str]) -> dict[str, dict[str, int]]: ...
+
+    # ---- Notifications ----
+    def create_notification(self, *, notification: dict) -> dict: ...
+    def list_notifications(self, *, recipient_address: str, unread_only: bool = False, limit: int = 50) -> list[dict]: ...
+    def mark_notification_read(self, *, recipient_address: str, notification_id: str) -> dict | None: ...
+
     # ---- Votes ----
     def upsert_vote(self, *, job_id: str, voter_address: str, vote: dict) -> dict: ...
     def list_votes_for_job(self, job_id: str) -> list[dict]: ...
@@ -239,6 +254,10 @@ class InMemoryStore:
         self.semantic_docs: dict[str, dict] = {}
         self.reputation: dict[str, dict] = {}
         self.profiles: dict[str, dict] = {}
+        # Engagement + notifications (best-effort in-memory; used only when DB is unavailable).
+        self.reactions: dict[tuple[str, str, str, str], str] = {}  # (actor, type, id, kind) -> created_at_iso
+        self.view_events: dict[tuple[str, str, str, str], str] = {}  # (viewer, type, id, window_start_iso) -> created_at_iso
+        self.notifications: dict[str, dict] = {}  # id -> notification dict
 
     # ---- Auth: challenges ----
     def create_challenge(self, address: str, message: str, ttl_seconds: int) -> Challenge:
@@ -633,6 +652,84 @@ class InMemoryStore:
         row["deleted_at"] = utc_now_iso()
         row["deleted_by"] = _lower_addr(deleted_by)
         self.comments[cid] = row
+        return row
+
+    # ---- Engagement (reactions/views) ----
+    def upsert_reaction(self, *, actor_address: str, target_type: str, target_id: str, kind: str) -> bool:
+        key = (_lower_addr(actor_address), str(target_type), str(target_id), str(kind))
+        if key in self.reactions:
+            return False
+        self.reactions[key] = utc_now_iso()
+        return True
+
+    def delete_reaction(self, *, actor_address: str, target_type: str, target_id: str, kind: str) -> bool:
+        key = (_lower_addr(actor_address), str(target_type), str(target_id), str(kind))
+        if key not in self.reactions:
+            return False
+        del self.reactions[key]
+        return True
+
+    def record_view(self, *, viewer_address: str, target_type: str, target_id: str) -> bool:
+        # Dedup per viewer per hour.
+        now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+        window = now.isoformat().replace("+00:00", "Z")
+        key = (_lower_addr(viewer_address), str(target_type), str(target_id), window)
+        if key in self.view_events:
+            return False
+        self.view_events[key] = utc_now_iso()
+        return True
+
+    def get_engagement_stats(self, *, target_type: str, target_id: str) -> dict[str, int]:
+        return (self.get_engagement_stats_batch(target_type=target_type, target_ids=[str(target_id)]) or {}).get(str(target_id), {})
+
+    def get_engagement_stats_batch(self, *, target_type: str, target_ids: list[str]) -> dict[str, dict[str, int]]:
+        t = str(target_type)
+        ids = [str(x) for x in (target_ids or []) if str(x)]
+        out: dict[str, dict[str, int]] = {}
+        for tid in ids:
+            up = sum(1 for (a, tt, i, k) in self.reactions.keys() if tt == t and i == tid and k == "upvote")
+            bm = sum(1 for (a, tt, i, k) in self.reactions.keys() if tt == t and i == tid and k == "bookmark")
+            vw = sum(1 for (a, tt, i, w) in self.view_events.keys() if tt == t and i == tid)
+            cm = sum(
+                1
+                for c in self.comments.values()
+                if c.get("target_type") == t and c.get("target_id") == tid and not c.get("deleted_at")
+            )
+            out[tid] = {"upvotes": int(up), "bookmarks": int(bm), "views": int(vw), "comments": int(cm)}
+        return out
+
+    # ---- Notifications ----
+    def create_notification(self, *, notification: dict) -> dict:
+        nid = str(uuid.uuid4())
+        n = dict(notification)
+        n["id"] = nid
+        n["recipient_address"] = _lower_addr(str(n.get("recipient_address") or ""))
+        n["actor_address"] = _lower_addr(str(n.get("actor_address") or "")) if n.get("actor_address") else None
+        n["created_at"] = n.get("created_at") or utc_now_iso()
+        self.notifications[nid] = n
+        return n
+
+    def list_notifications(self, *, recipient_address: str, unread_only: bool = False, limit: int = 50) -> list[dict]:
+        addr = _lower_addr(recipient_address)
+        rows = [n for n in self.notifications.values() if _lower_addr(str(n.get("recipient_address") or "")) == addr]
+        if unread_only:
+            rows = [n for n in rows if not n.get("read_at")]
+        rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+        return rows[: max(1, int(limit))]
+
+    def mark_notification_read(self, *, recipient_address: str, notification_id: str) -> dict | None:
+        addr = _lower_addr(recipient_address)
+        nid = str(notification_id)
+        row = self.notifications.get(nid)
+        if not row:
+            return None
+        if _lower_addr(str(row.get("recipient_address") or "")) != addr:
+            return None
+        if row.get("read_at"):
+            return row
+        row = dict(row)
+        row["read_at"] = utc_now_iso()
+        self.notifications[nid] = row
         return row
 
     # ---- Votes ----
@@ -1707,6 +1804,182 @@ class PostgresStore:
                 db.commit()
                 db.refresh(row)
             return self._comment_to_dict(row)
+
+    # ---- Engagement (reactions/views) ----
+    def upsert_reaction(self, *, actor_address: str, target_type: str, target_id: str, kind: str) -> bool:
+        actor = _lower_addr(actor_address)
+        t = str(target_type)
+        tid = str(target_id)
+        k = str(kind)
+        row = ReactionDB(
+            id=str(uuid.uuid4()),
+            target_type=t,
+            target_id=tid,
+            kind=k,
+            actor_address=actor,
+            created_at=_now_utc(),
+        )
+        with self._session() as db:
+            try:
+                db.add(row)
+                db.commit()
+                return True
+            except Exception:
+                db.rollback()
+                # Likely unique constraint violation -> already exists.
+                return False
+
+    def delete_reaction(self, *, actor_address: str, target_type: str, target_id: str, kind: str) -> bool:
+        actor = _lower_addr(actor_address)
+        t = str(target_type)
+        tid = str(target_id)
+        k = str(kind)
+        with self._session() as db:
+            q = delete(ReactionDB).where(
+                ReactionDB.actor_address == actor,
+                ReactionDB.target_type == t,
+                ReactionDB.target_id == tid,
+                ReactionDB.kind == k,
+            )
+            res = db.execute(q)
+            db.commit()
+            return bool(getattr(res, "rowcount", 0) or 0)
+
+    def record_view(self, *, viewer_address: str, target_type: str, target_id: str) -> bool:
+        viewer = _lower_addr(viewer_address)
+        t = str(target_type)
+        tid = str(target_id)
+        now = _now_utc()
+        window_start = now.replace(minute=0, second=0, microsecond=0)
+        row = ViewEventDB(
+            id=str(uuid.uuid4()),
+            target_type=t,
+            target_id=tid,
+            viewer_address=viewer,
+            window_start=window_start,
+            created_at=now,
+        )
+        with self._session() as db:
+            try:
+                db.add(row)
+                db.commit()
+                return True
+            except Exception:
+                db.rollback()
+                return False
+
+    def get_engagement_stats(self, *, target_type: str, target_id: str) -> dict[str, int]:
+        tid = str(target_id)
+        return (self.get_engagement_stats_batch(target_type=str(target_type), target_ids=[tid]) or {}).get(tid, {})
+
+    def get_engagement_stats_batch(self, *, target_type: str, target_ids: list[str]) -> dict[str, dict[str, int]]:
+        t = str(target_type)
+        ids = [str(x) for x in (target_ids or []) if str(x)]
+        if not ids:
+            return {}
+
+        out: dict[str, dict[str, int]] = {tid: {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0} for tid in ids}
+
+        with self._session() as db:
+            # Comments (exclude soft-deleted)
+            cq = (
+                select(CommentDB.target_id, func.count())
+                .where(CommentDB.target_type == t, CommentDB.target_id.in_(ids), CommentDB.deleted_at.is_(None))
+                .group_by(CommentDB.target_id)
+            )
+            for target_id, cnt in db.execute(cq).all():
+                tid = str(target_id)
+                if tid in out:
+                    out[tid]["comments"] = int(cnt or 0)
+
+            # Reactions
+            rq = (
+                select(ReactionDB.target_id, ReactionDB.kind, func.count())
+                .where(ReactionDB.target_type == t, ReactionDB.target_id.in_(ids))
+                .group_by(ReactionDB.target_id, ReactionDB.kind)
+            )
+            for target_id, kind, cnt in db.execute(rq).all():
+                tid = str(target_id)
+                if tid not in out:
+                    continue
+                k = str(kind or "")
+                if k == "upvote":
+                    out[tid]["upvotes"] = int(cnt or 0)
+                elif k == "bookmark":
+                    out[tid]["bookmarks"] = int(cnt or 0)
+
+            # Views (view_events are already deduped per viewer per hour)
+            vq = (
+                select(ViewEventDB.target_id, func.count())
+                .where(ViewEventDB.target_type == t, ViewEventDB.target_id.in_(ids))
+                .group_by(ViewEventDB.target_id)
+            )
+            for target_id, cnt in db.execute(vq).all():
+                tid = str(target_id)
+                if tid in out:
+                    out[tid]["views"] = int(cnt or 0)
+
+        return out
+
+    # ---- Notifications ----
+    def _notification_to_dict(self, n: NotificationDB) -> dict:
+        return {
+            "id": n.id,
+            "recipient_address": n.recipient_address,
+            "actor_address": n.actor_address,
+            "type": n.type,
+            "target_type": n.target_type,
+            "target_id": n.target_id,
+            "payload": dict(n.payload or {}),
+            "created_at": _dt_to_iso(n.created_at),
+            "read_at": _dt_to_iso(n.read_at),
+        }
+
+    def create_notification(self, *, notification: dict) -> dict:
+        nid = str(uuid.uuid4())
+        row = NotificationDB(
+            id=nid,
+            recipient_address=_lower_addr(str(notification.get("recipient_address") or "")),
+            actor_address=_lower_addr(str(notification.get("actor_address") or "")) if notification.get("actor_address") else None,
+            type=str(notification.get("type") or ""),
+            target_type=str(notification.get("target_type") or ""),
+            target_id=str(notification.get("target_id") or ""),
+            payload=dict(notification.get("payload") or {}),
+            created_at=_parse_iso(str(notification.get("created_at") or "")) or _now_utc(),
+            read_at=_parse_iso(str(notification.get("read_at") or "")) if notification.get("read_at") else None,
+        )
+        with self._session() as db:
+            db.add(row)
+            db.commit()
+            db.refresh(row)
+        return self._notification_to_dict(row)
+
+    def list_notifications(self, *, recipient_address: str, unread_only: bool = False, limit: int = 50) -> list[dict]:
+        addr = _lower_addr(recipient_address)
+        lim = max(1, int(limit))
+        with self._session() as db:
+            q = select(NotificationDB).where(NotificationDB.recipient_address == addr)
+            if unread_only:
+                q = q.where(NotificationDB.read_at.is_(None))
+            q = q.order_by(NotificationDB.created_at.desc()).limit(lim)
+            rows = list(db.execute(q).scalars().all())
+        return [self._notification_to_dict(r) for r in rows]
+
+    def mark_notification_read(self, *, recipient_address: str, notification_id: str) -> dict | None:
+        addr = _lower_addr(recipient_address)
+        nid = str(notification_id)
+        now = _now_utc()
+        with self._session() as db:
+            row = db.get(NotificationDB, nid)
+            if not row:
+                return None
+            if _lower_addr(str(row.recipient_address or "")) != addr:
+                return None
+            if row.read_at is None:
+                row.read_at = now
+                db.commit()
+                db.refresh(row)
+            return self._notification_to_dict(row)
 
     def list_votes_for_job(self, job_id: str) -> list[dict]:
         with self._session() as db:

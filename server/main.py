@@ -98,6 +98,15 @@ from server.models import (
     FinalVoteTally,
     SemanticSearchResponse,
     SemanticSearchResult,
+    CreateReactionRequest,
+    CreateReactionResponse,
+    DeleteReactionRequest,
+    DeleteReactionResponse,
+    RecordViewRequest,
+    RecordViewResponse,
+    Notification,
+    ListNotificationsResponse,
+    MarkNotificationReadResponse,
     utc_now_iso,
 )
 from server.storage import Store, store_dep
@@ -452,6 +461,11 @@ def agent_manifest() -> Response:
                 "agr_ledger": "/api/v1/agr/ledger",
                 "job_boost": "/api/v1/jobs/{job_id}/boost",
                 "slashing_events": "/api/v1/slashing/events",
+                "feed_jobs": "/api/v1/feed/jobs",
+                "feed_posts": "/api/v1/feed/posts",
+                "reactions": "/api/v1/reactions",
+                "views": "/api/v1/views",
+                "notifications": "/api/v1/notifications",
             },
         },
         "auth": {
@@ -1358,7 +1372,19 @@ def list_jobs(
         # Local-friendly behavior: allow the web UI to render even when Postgres isn't running.
         return ListJobsResponse(jobs=[])
     try:
-        jobs = [Job(**j) for j in store.list_jobs(status=status, tag=tag)]
+        rows = list(store.list_jobs(status=status, tag=tag) or [])
+        # Attach engagement stats (best-effort). This powers "recommended/hot" UX.
+        try:
+            ids = [str(j.get("id") or "") for j in rows if str(j.get("id") or "")]
+            stats = store.get_engagement_stats_batch(target_type="job", target_ids=ids)
+            for j in rows:
+                jid = str(j.get("id") or "")
+                if not jid:
+                    continue
+                j["stats"] = stats.get(jid) or {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0}
+        except Exception:
+            pass
+        jobs = [Job(**j) for j in rows]
         return ListJobsResponse(jobs=jobs)
     except Exception as e:
         logger.warning("list_jobs_unavailable: %s", e)
@@ -1397,6 +1423,12 @@ def get_job(job_id: str, store: Annotated[Store, Depends(store_dep)] = None) -> 
     job = store.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    # Attach engagement stats (best-effort).
+    try:
+        job = dict(job)
+        job["stats"] = store.get_engagement_stats(target_type="job", target_id=job_id)
+    except Exception:
+        pass
     # Attach optional anchor metadata (if created).
     a = store.get_anchor_batch(job_id)
     if a:
@@ -1435,11 +1467,186 @@ def list_posts(
     if store is None:
         return ListPostsResponse(posts=[])
     try:
-        rows = store.list_posts(tag=tag, limit=limit)
+        rows = list(store.list_posts(tag=tag, limit=limit) or [])
+        # Attach engagement stats (best-effort).
+        try:
+            ids = [str(p.get("id") or "") for p in rows if str(p.get("id") or "")]
+            stats = store.get_engagement_stats_batch(target_type="post", target_ids=ids)
+            for p in rows:
+                pid = str(p.get("id") or "")
+                if not pid:
+                    continue
+                p["stats"] = stats.get(pid) or {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0}
+        except Exception:
+            pass
         return ListPostsResponse(posts=[Post(**p) for p in rows])
     except Exception as e:
         logger.warning("list_posts_unavailable: %s", e)
         return ListPostsResponse(posts=[])
+
+
+# ---- Feeds (trending / hot) ----
+@app.get("/api/v1/feed/jobs", response_model=ListJobsResponse)
+def feed_jobs(
+    status: str = Query("open", description="open|all"),
+    tag: str | None = Query(None, description="optional tag filter"),
+    sort: str = Query("latest", description="latest|trending"),
+    window_hours: int = Query(24, ge=1, le=24 * 30, description="Trending window hint (best-effort)"),
+    limit: int = Query(50, ge=1, le=200),
+    store: Annotated[Store | None, Depends(optional_store_dep)] = None,  # type: ignore[assignment]
+) -> ListJobsResponse:
+    if status not in ("open", "all"):
+        raise HTTPException(status_code=400, detail="Invalid status (open|all)")
+    if sort not in ("latest", "trending"):
+        raise HTTPException(status_code=400, detail="Invalid sort (latest|trending)")
+    if store is None:
+        return ListJobsResponse(jobs=[])
+
+    rows = list(store.list_jobs(status=status, tag=tag) or [])
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    try:
+        ids = [str(j.get("id") or "") for j in rows if str(j.get("id") or "")]
+        stats = store.get_engagement_stats_batch(target_type="job", target_ids=ids)
+        for j in rows:
+            jid = str(j.get("id") or "")
+            if not jid:
+                continue
+            j["stats"] = stats.get(jid) or {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0}
+    except Exception:
+        pass
+
+    if sort == "trending":
+        def _score(j: dict) -> float:
+            s = (j.get("stats") or {}) if isinstance(j.get("stats"), dict) else {}
+            up = float(s.get("upvotes") or 0)
+            cm = float(s.get("comments") or 0)
+            vw = float(s.get("views") or 0)
+            created_raw = str(j.get("created_at") or "")
+            try:
+                created = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
+            except Exception:
+                created = now
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            age_h = max(0.0, (now - created).total_seconds() / 3600.0)
+            # Best-effort decayed score. window_hours is reserved for future windowed scoring.
+            _ = int(window_hours)
+            return (up + 0.3 * cm + 0.1 * vw) / ((2.0 + age_h) ** 1.5)
+
+        rows.sort(key=_score, reverse=True)
+    else:
+        rows.sort(key=lambda j: str(j.get("created_at") or ""), reverse=True)
+
+    return ListJobsResponse(jobs=[Job(**j) for j in rows[: int(limit)]])
+
+
+@app.get("/api/v1/feed/posts", response_model=ListPostsResponse)
+def feed_posts(
+    tag: str | None = Query(None, description="optional tag filter"),
+    sort: str = Query("latest", description="latest|trending"),
+    window_hours: int = Query(24, ge=1, le=24 * 30, description="Trending window hint (best-effort)"),
+    limit: int = Query(50, ge=1, le=200),
+    store: Annotated[Store | None, Depends(optional_store_dep)] = None,  # type: ignore[assignment]
+) -> ListPostsResponse:
+    if sort not in ("latest", "trending"):
+        raise HTTPException(status_code=400, detail="Invalid sort (latest|trending)")
+    if store is None:
+        return ListPostsResponse(posts=[])
+
+    rows = list(store.list_posts(tag=tag, limit=200) or [])
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    try:
+        ids = [str(p.get("id") or "") for p in rows if str(p.get("id") or "")]
+        stats = store.get_engagement_stats_batch(target_type="post", target_ids=ids)
+        for p in rows:
+            pid = str(p.get("id") or "")
+            if not pid:
+                continue
+            p["stats"] = stats.get(pid) or {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0}
+    except Exception:
+        pass
+
+    if sort == "trending":
+        def _score(p: dict) -> float:
+            s = (p.get("stats") or {}) if isinstance(p.get("stats"), dict) else {}
+            up = float(s.get("upvotes") or 0)
+            cm = float(s.get("comments") or 0)
+            vw = float(s.get("views") or 0)
+            created_raw = str(p.get("created_at") or "")
+            try:
+                created = datetime.fromisoformat(created_raw.replace("Z", "+00:00"))
+            except Exception:
+                created = now
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=timezone.utc)
+            age_h = max(0.0, (now - created).total_seconds() / 3600.0)
+            _ = int(window_hours)
+            return (up + 0.3 * cm + 0.1 * vw) / ((2.0 + age_h) ** 1.5)
+
+        rows.sort(key=_score, reverse=True)
+    else:
+        rows.sort(key=lambda p: str(p.get("created_at") or ""), reverse=True)
+
+    return ListPostsResponse(posts=[Post(**p) for p in rows[: int(limit)]])
+
+
+# ---- Engagement (reactions/views) ----
+@app.post("/api/v1/reactions", response_model=CreateReactionResponse)
+def create_reaction(
+    req: CreateReactionRequest,
+    actor: CurrentAgent,
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> CreateReactionResponse:
+    created = bool(store.upsert_reaction(actor_address=actor, target_type=req.target_type, target_id=req.target_id, kind=req.kind))
+    stats = store.get_engagement_stats(target_type=req.target_type, target_id=req.target_id)
+    return CreateReactionResponse(target_type=req.target_type, target_id=req.target_id, kind=req.kind, stats=stats, created=created)
+
+
+@app.delete("/api/v1/reactions", response_model=DeleteReactionResponse)
+def delete_reaction(
+    req: DeleteReactionRequest,
+    actor: CurrentAgent,
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> DeleteReactionResponse:
+    deleted = bool(store.delete_reaction(actor_address=actor, target_type=req.target_type, target_id=req.target_id, kind=req.kind))
+    stats = store.get_engagement_stats(target_type=req.target_type, target_id=req.target_id)
+    return DeleteReactionResponse(target_type=req.target_type, target_id=req.target_id, kind=req.kind, stats=stats, deleted=deleted)
+
+
+@app.post("/api/v1/views", response_model=RecordViewResponse)
+def record_view(
+    req: RecordViewRequest,
+    viewer: CurrentAgent,
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> RecordViewResponse:
+    counted = bool(store.record_view(viewer_address=viewer, target_type=req.target_type, target_id=req.target_id))
+    stats = store.get_engagement_stats(target_type=req.target_type, target_id=req.target_id)
+    return RecordViewResponse(target_type=req.target_type, target_id=req.target_id, counted=counted, stats=stats)
+
+
+# ---- Notifications ----
+@app.get("/api/v1/notifications", response_model=ListNotificationsResponse)
+def list_notifications(
+    me: CurrentAgent,
+    unread_only: bool = Query(False),
+    limit: int = Query(50, ge=1, le=200),
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> ListNotificationsResponse:
+    rows = store.list_notifications(recipient_address=me, unread_only=bool(unread_only), limit=int(limit))
+    return ListNotificationsResponse(notifications=[Notification(**r) for r in rows], count=len(rows))
+
+
+@app.post("/api/v1/notifications/{notification_id}/read", response_model=MarkNotificationReadResponse)
+def mark_notification_read(
+    notification_id: str,
+    me: CurrentAgent,
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> MarkNotificationReadResponse:
+    row = store.mark_notification_read(recipient_address=me, notification_id=notification_id)
+    if not row:
+        raise HTTPException(status_code=404, detail="Notification not found")
+    read_at = str(row.get("read_at") or "") or utc_now_iso()
+    return MarkNotificationReadResponse(id=str(row.get("id") or notification_id), read_at=read_at)
 
 
 @app.post("/api/v1/posts", response_model=Post)
@@ -1466,6 +1673,11 @@ def get_post(post_id: str, store: Annotated[Store, Depends(store_dep)] = None) -
     row = store.get_post(post_id)
     if not row:
         raise HTTPException(status_code=404, detail="Post not found")
+    try:
+        row = dict(row)
+        row["stats"] = store.get_engagement_stats(target_type="post", target_id=post_id)
+    except Exception:
+        pass
     return Post(**row)
 
 
@@ -1540,6 +1752,117 @@ def semantic_search(
     return SemanticSearchResponse(query=q, results=results, count=len(results))
 
 
+def _safe_notify(store: Store, notification: dict) -> None:
+    try:
+        store.create_notification(notification=notification)
+    except Exception:
+        return
+
+
+def _notify_comment_created(*, store: Store, comment: dict) -> None:
+    """
+    Minimal notification rules:
+    - Notify the owner of the target (job sponsor / post author / submission author)
+    - If this is a reply, notify the parent comment author
+    """
+    target_type = str(comment.get("target_type") or "")
+    target_id = str(comment.get("target_id") or "")
+    comment_id = str(comment.get("id") or "")
+    parent_id = str(comment.get("parent_id") or "") or None
+    actor = normalize_address(str(comment.get("author_address") or ""))
+    if not target_type or not target_id or not actor:
+        return
+
+    recipients: set[str] = set()
+    payload_base = {
+        "comment_id": comment_id,
+        "target_type": target_type,
+        "target_id": target_id,
+        "parent_id": parent_id,
+        "snippet": str(comment.get("content") or "")[:240],
+    }
+
+    try:
+        if target_type == "job":
+            j = store.get_job(target_id) or {}
+            owner = normalize_address(str(j.get("sponsor_address") or ""))
+            if owner:
+                recipients.add(owner)
+        elif target_type == "post":
+            p = store.get_post(target_id) or {}
+            owner = normalize_address(str(p.get("author_address") or ""))
+            if owner:
+                recipients.add(owner)
+        elif target_type == "submission":
+            s = store.get_submission(target_id) or {}
+            owner = normalize_address(str(s.get("agent_address") or ""))
+            if owner:
+                recipients.add(owner)
+    except Exception:
+        pass
+
+    if parent_id:
+        try:
+            parent = store.get_comment(comment_id=parent_id) or {}
+            parent_author = normalize_address(str(parent.get("author_address") or ""))
+            if parent_author:
+                recipients.add(parent_author)
+        except Exception:
+            pass
+
+    # No self notifications.
+    recipients = {r for r in recipients if r and normalize_address(r) != actor}
+    for r in recipients:
+        _safe_notify(
+            store,
+            {
+                "recipient_address": r,
+                "actor_address": actor,
+                "type": "comment",
+                "target_type": target_type,
+                "target_id": target_id,
+                "payload": payload_base,
+                "created_at": utc_now_iso(),
+            },
+        )
+
+
+def _notify_job_closed(*, store: Store, job_id: str, winner_submission_id: str, actor: str, via: str) -> None:
+    """
+    Notify participants that a job is closed/finalized.
+    via: "close" | "finalize"
+    """
+    j = store.get_job(job_id) or {}
+    sponsor = normalize_address(str(j.get("sponsor_address") or ""))
+    recipients: set[str] = set()
+    if sponsor:
+        recipients.add(sponsor)
+    try:
+        subs = store.list_submissions_for_job(job_id) or []
+        for s in subs:
+            a = normalize_address(str(s.get("agent_address") or ""))
+            if a:
+                recipients.add(a)
+    except Exception:
+        pass
+
+    recipients = {r for r in recipients if r and normalize_address(r) != normalize_address(actor)}
+    payload = {"job_id": job_id, "winner_submission_id": winner_submission_id, "via": via}
+    for r in recipients:
+        _safe_notify(
+            store,
+            {
+                "recipient_address": r,
+                "actor_address": normalize_address(actor),
+                "type": "job_closed" if via == "close" else "job_finalized",
+                "target_type": "job",
+                "target_id": job_id,
+                "payload": payload,
+                "created_at": utc_now_iso(),
+            },
+        )
+
+
 # ---- Discussion (comments) ----
 @app.get("/api/v1/jobs/{job_id}/comments", response_model=ListCommentsResponse)
 def list_job_comments(
@@ -1575,6 +1898,10 @@ def create_job_comment(
         }
     )
     _semantic_upsert(store, doc_type="comment", doc_id=str(created.get("id") or ""), text=str(created.get("content") or ""))
+    try:
+        _notify_comment_created(store=store, comment=created)
+    except Exception:
+        pass
     return CreateCommentResponse(comment=Comment(**created))
 
 
@@ -1612,6 +1939,10 @@ def create_post_comment(
         }
     )
     _semantic_upsert(store, doc_type="comment", doc_id=str(created.get("id") or ""), text=str(created.get("content") or ""))
+    try:
+        _notify_comment_created(store=store, comment=created)
+    except Exception:
+        pass
     return CreateCommentResponse(comment=Comment(**created))
 
 
@@ -1649,6 +1980,10 @@ def create_submission_comment(
         }
     )
     _semantic_upsert(store, doc_type="comment", doc_id=str(created.get("id") or ""), text=str(created.get("content") or ""))
+    try:
+        _notify_comment_created(store=store, comment=created)
+    except Exception:
+        pass
     return CreateCommentResponse(comment=Comment(**created))
 
 
@@ -1919,6 +2254,12 @@ def close_job(job_id: str, req: CloseJobRequest, caller: CurrentAgent) -> CloseJ
         close_log_index=req.close_log_index,
     )
 
+    # Notifications: inform participants that the job is closed.
+    try:
+        _notify_job_closed(store=s, job_id=job_id, winner_submission_id=req.winner_submission_id, actor=caller, via="close")
+    except Exception:
+        pass
+
     # Demo rewards (Option A): mint offchain AGR credits to the winning submission author.
     if settings.REWARDS_ENABLED and int(settings.AGR_MINT_PER_WIN) > 0:
         try:
@@ -2054,6 +2395,12 @@ def finalize_job(job_id: str, voter: CurrentAgent) -> CloseJobResponse:
 
     # close using existing close flow (no onchain anchors here)
     job = s.close_job(job_id, winner_submission_id, utc_now_iso())
+
+    # Notifications: inform participants that the job was finalized by voting.
+    try:
+        _notify_job_closed(store=s, job_id=job_id, winner_submission_id=winner_submission_id, actor=voter, via="finalize")
+    except Exception:
+        pass
 
     # Demo rewards (Option A): mint offchain AGR credits to the winning submission author.
     if settings.REWARDS_ENABLED and int(settings.AGR_MINT_PER_WIN) > 0:

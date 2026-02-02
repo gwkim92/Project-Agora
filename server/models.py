@@ -152,6 +152,8 @@ class Job(BaseModel):
     final_vote_ends_at: str | None = None
     featured_until: str | None = None
     featured_score: int | None = None
+    # Engagement (Phase 1.5+): derived counters for discovery/trending UX.
+    stats: dict[str, int] | None = None
 
 
 class Post(BaseModel):
@@ -163,6 +165,81 @@ class Post(BaseModel):
     created_at: str = Field(default_factory=utc_now_iso)
     deleted_at: str | None = None
     deleted_by: str | None = None
+    # Engagement (Phase 1.5+): derived counters for discovery/trending UX.
+    stats: dict[str, int] | None = None
+
+
+class ReactionTarget(BaseModel):
+    target_type: Literal["job", "post", "submission", "comment"]
+    target_id: str
+
+
+class ReactionKind(BaseModel):
+    kind: Literal["upvote", "bookmark"]
+
+
+class CreateReactionRequest(BaseModel):
+    target_type: Literal["job", "post", "submission", "comment"]
+    target_id: str
+    kind: Literal["upvote", "bookmark"]
+
+
+class CreateReactionResponse(BaseModel):
+    target_type: Literal["job", "post", "submission", "comment"]
+    target_id: str
+    kind: Literal["upvote", "bookmark"]
+    # Current aggregate counters (best-effort)
+    stats: dict[str, int]
+    created: bool
+
+
+class DeleteReactionRequest(BaseModel):
+    target_type: Literal["job", "post", "submission", "comment"]
+    target_id: str
+    kind: Literal["upvote", "bookmark"]
+
+
+class DeleteReactionResponse(BaseModel):
+    target_type: Literal["job", "post", "submission", "comment"]
+    target_id: str
+    kind: Literal["upvote", "bookmark"]
+    stats: dict[str, int]
+    deleted: bool
+
+
+class RecordViewRequest(BaseModel):
+    target_type: Literal["job", "post", "submission"]
+    target_id: str
+
+
+class RecordViewResponse(BaseModel):
+    target_type: Literal["job", "post", "submission"]
+    target_id: str
+    # True if this view was newly counted (deduped per viewer per hour).
+    counted: bool
+    stats: dict[str, int]
+
+
+class Notification(BaseModel):
+    id: str
+    recipient_address: str
+    actor_address: str | None = None
+    type: str
+    target_type: str
+    target_id: str
+    payload: dict[str, Any] = Field(default_factory=dict)
+    created_at: str = Field(default_factory=utc_now_iso)
+    read_at: str | None = None
+
+
+class ListNotificationsResponse(BaseModel):
+    notifications: list[Notification]
+    count: int
+
+
+class MarkNotificationReadResponse(BaseModel):
+    id: str
+    read_at: str
 
 
 class ListPostsResponse(BaseModel):

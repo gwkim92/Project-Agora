@@ -73,6 +73,15 @@ export const bff = {
     return getJson<{ profiles: Array<Record<string, unknown>> }>(`/api/profiles?${qs.toString()}`);
   },
 
+  notifications: (opts?: { unread_only?: boolean; limit?: number }) => {
+    const qs = new URLSearchParams();
+    if (opts?.unread_only) qs.set("unread_only", "true");
+    if (opts?.limit) qs.set("limit", String(opts.limit));
+    const q = qs.toString();
+    return getJson<{ notifications: Array<Record<string, unknown>>; count: number }>(`/api/notifications${q ? `?${q}` : ""}`);
+  },
+  markNotificationRead: (id: string) => postJson<{ id: string; read_at: string }>(`/api/notifications/${encodeURIComponent(id)}/read`, {}),
+
   adminMetrics: () =>
     getJson<{
       users: number;

@@ -75,6 +75,7 @@ export function AccountSettings() {
   const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
   const [agrText, setAgrText] = useState<string | null>(null);
   const [agrLedgerText, setAgrLedgerText] = useState<string | null>(null);
+  const [notificationsText, setNotificationsText] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -120,6 +121,25 @@ export function AccountSettings() {
           if (cancelled) return;
           setAgrText(e instanceof Error ? e.message : "Failed to load rewards");
           setAgrLedgerText(null);
+        }
+
+        // Notifications (best-effort)
+        try {
+          const n = await bff.notifications({ unread_only: true, limit: 30 });
+          if (cancelled) return;
+          const rows = (n.notifications ?? []) as Array<Record<string, unknown>>;
+          const lines = rows.map((x) => {
+            const t = String(x.type ?? "event");
+            const when = String(x.created_at ?? "");
+            const targetType = String(x.target_type ?? "");
+            const targetId = String(x.target_id ?? "");
+            const actor = x.actor_address ? String(x.actor_address) : "";
+            return `${when}  ${t}  ${targetType}:${targetId.slice(0, 8)}… ${actor ? `by ${actor.slice(0, 6)}…` : ""}`.trim();
+          });
+          setNotificationsText(lines.length ? lines.join("\n") : "No unread notifications.");
+        } catch (e) {
+          if (cancelled) return;
+          setNotificationsText(e instanceof Error ? e.message : "Failed to load notifications");
         }
       } catch (e) {
         if (cancelled) return;
@@ -259,6 +279,18 @@ export function AccountSettings() {
                 {agrLedgerText}
               </pre>
             ) : null}
+          </div>
+
+          <div className="pt-6 border-t border-white/10">
+            <div className="text-sm font-semibold text-slate-200">Notifications</div>
+            <div className="mt-1 text-xs text-slate-500">Unread events for this wallet (comments and job status changes).</div>
+            {notificationsText ? (
+              <pre className="mt-3 max-h-[260px] overflow-auto rounded-lg border border-white/10 bg-[#0b1220] p-3 text-xs text-slate-200 whitespace-pre-wrap">
+                {notificationsText}
+              </pre>
+            ) : (
+              <div className="mt-2 text-xs text-slate-500 italic">No notifications loaded.</div>
+            )}
           </div>
         </div>
       </div>

@@ -27,6 +27,7 @@ export type Job = {
   anchor_contract_address?: string | null;
   anchor_block_number?: number | null;
   anchor_log_index?: number | null;
+  stats?: Record<string, number> | null;
 };
 
 export type ListJobsResponse = { jobs: Job[] };
@@ -83,7 +84,7 @@ export type Submission = {
 
 export type Comment = {
   id: string;
-  target_type: "job" | "submission";
+  target_type: "job" | "submission" | "post";
   target_id: string;
   parent_id?: string | null;
   author_address: string;

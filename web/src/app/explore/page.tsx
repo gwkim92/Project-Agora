@@ -2,6 +2,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { TOPICS } from "@/lib/topics";
 import { Button } from "@/components/ui/button";
+import { UpvoteButton } from "@/components/UpvoteButton";
 import { ArrowRight, Filter, Tag, Scale, Star } from "lucide-react";
 
 export const dynamic = "force-dynamic";
@@ -9,14 +10,17 @@ export const dynamic = "force-dynamic";
 export default async function ExplorePage({
   searchParams,
 }: {
-  searchParams: Promise<{ topic?: string; status?: "open" | "all" }>;
+  searchParams: Promise<{ topic?: string; status?: "open" | "all"; sort?: "latest" | "trending" }>;
 }) {
-  const { topic, status } = await searchParams;
+  const { topic, status, sort } = await searchParams;
   const selected = topic ? TOPICS.find((t) => t.id === topic) : null;
   const tag = selected?.tags?.[0];
 
   const selectedStatus = status ?? "open";
-  const jobsRes = await api.listJobs({ tag, status: selectedStatus }).catch(() => ({ jobs: [] }));
+  const selectedSort = sort ?? "latest";
+  const jobsRes = await api
+    .feedJobs({ tag, status: selectedStatus, sort: selectedSort })
+    .catch(() => ({ jobs: [] }));
 
   return (
     <div className="min-h-screen bg-[#0c0a09] text-slate-200 relative overflow-hidden">
@@ -94,6 +98,26 @@ export default async function ExplorePage({
                   </div>
                   <div className="flex gap-2">
                     <Link
+                      href={`/explore?${new URLSearchParams({ ...(topic ? { topic } : {}), status: selectedStatus, sort: "latest" }).toString()}`}
+                      className={`px-3 py-1 rounded-full text-xs tracking-widest uppercase border ${
+                        selectedSort === "latest"
+                          ? "border-white/20 text-slate-100 bg-white/5"
+                          : "border-white/5 text-slate-500 hover:text-slate-300 hover:bg-white/[0.02]"
+                      }`}
+                    >
+                      Latest
+                    </Link>
+                    <Link
+                      href={`/explore?${new URLSearchParams({ ...(topic ? { topic } : {}), status: selectedStatus, sort: "trending" }).toString()}`}
+                      className={`px-3 py-1 rounded-full text-xs tracking-widest uppercase border ${
+                        selectedSort === "trending"
+                          ? "border-white/20 text-slate-100 bg-white/5"
+                          : "border-white/5 text-slate-500 hover:text-slate-300 hover:bg-white/[0.02]"
+                      }`}
+                    >
+                      Trending
+                    </Link>
+                    <Link
                       href={`/explore?${new URLSearchParams({ ...(topic ? { topic } : {}), status: "open" }).toString()}`}
                       className={`px-3 py-1 rounded-full text-xs tracking-widest uppercase border ${
                         selectedStatus === "open"
@@ -138,6 +162,9 @@ export default async function ExplorePage({
                              <span>#{j.id.slice(0, 4)}</span>
                              <span className="text-slate-700">|</span>
                              <span>{new Date(j.created_at).toLocaleDateString()}</span>
+                             <span className="text-slate-700">|</span>
+                             <span>↑{Number(j.stats?.upvotes ?? 0)}</span>
+                             <span>c{Number(j.stats?.comments ?? 0)}</span>
                              {j.tags?.map(tag => (
                                <span key={tag} className="hidden sm:inline-block text-slate-600">#{tag}</span>
                              ))}
@@ -156,7 +183,13 @@ export default async function ExplorePage({
                           </span>
                         </div>
                         
-                        <div className="col-span-3 md:col-span-2 text-right pr-4">
+                        <div className="col-span-3 md:col-span-2 text-right pr-4 flex items-center justify-end gap-2">
+                          <UpvoteButton
+                            targetType="job"
+                            targetId={j.id}
+                            initialUpvotes={Number(j.stats?.upvotes ?? 0)}
+                            className="rounded-full hover:bg-white/10 text-slate-400 group-hover:text-white"
+                          />
                           <Button asChild variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-slate-400 group-hover:text-white">
                             <Link href={`/quests/${j.id}`} aria-label="Open topic">
                               <ArrowRight className="w-4 h-4" aria-hidden="true" />
