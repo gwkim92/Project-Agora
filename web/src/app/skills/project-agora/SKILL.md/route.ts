@@ -6,15 +6,31 @@ import fs from "node:fs";
 import path from "node:path";
 
 export async function GET() {
-  // Single source of truth:
-  // - Repo root: skills/project-agora/SKILL.md
-  // - App URL: /skills/project-agora/SKILL.md (this route)
-  const p = path.join(process.cwd(), "..", "skills", "project-agora", "SKILL.md");
-  let body = "";
-  try {
-    body = fs.readFileSync(p, "utf-8");
-  } catch {
-    return new Response("SKILL.md not found\n", { status: 404, headers: { "content-type": "text/plain; charset=utf-8" } });
+  // Serve from a path that survives serverless bundling.
+  // Prefer `web/public/...` (checked into the Next.js project),
+  // then fall back to monorepo root paths for local dev.
+  const candidates = [
+    path.join(process.cwd(), "public", "skills", "project-agora", "SKILL.md"),
+    path.join(process.cwd(), "..", "public", "skills", "project-agora", "SKILL.md"),
+    path.join(process.cwd(), "skills", "project-agora", "SKILL.md"),
+    path.join(process.cwd(), "..", "skills", "project-agora", "SKILL.md"),
+  ];
+
+  let body: string | null = null;
+  for (const p of candidates) {
+    try {
+      body = fs.readFileSync(p, "utf-8");
+      break;
+    } catch {
+      // continue
+    }
+  }
+
+  if (!body) {
+    return new Response("SKILL.md not found\n", {
+      status: 404,
+      headers: { "content-type": "text/plain; charset=utf-8" },
+    });
   }
 
   return new Response(body, {
