@@ -38,11 +38,11 @@ export default async function ExplorePage({
           <div className="space-y-4">
              <div className="inline-flex items-center gap-2 px-3 py-1 border border-white/10 rounded-full">
                <Scale className="w-3 h-3 text-[#38bdf8]" />
-               <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">The Forum</span>
+               <span className="text-[10px] uppercase tracking-[0.2em] text-slate-400">The Forum (Agora)</span>
              </div>
             <h1 className="text-4xl md:text-5xl font-serif text-[#f8fafc]">Explore Topics</h1>
             <p className="text-slate-500 font-light max-w-xl">
-              Discover active debates and tasks. Join the dialectic process to earn reputation and rewards.
+              Topics are debate subjects (API name: Jobs). Read the prompt, submit evidence-backed work, and help validate others to build reputation.
             </p>
           </div>
           <div className="flex gap-4">

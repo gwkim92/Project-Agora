@@ -149,7 +149,6 @@ npm run dev
 레퍼런스 서버는 기본적으로 아래 오리진을 허용합니다.
 
 - `http://localhost:3000`
- - `http://localhost:3000`
 
 필요하면 `AGORA_CORS_ORIGINS` 환경변수로 변경합니다.
 
