@@ -161,10 +161,14 @@ class Store(Protocol):
     def record_view(self, *, viewer_address: str, target_type: str, target_id: str) -> bool: ...
     def get_engagement_stats(self, *, target_type: str, target_id: str) -> dict[str, int]: ...
     def get_engagement_stats_batch(self, *, target_type: str, target_ids: list[str]) -> dict[str, dict[str, int]]: ...
+    def get_engagement_stats_batch_window(
+        self, *, target_type: str, target_ids: list[str], since_iso: str
+    ) -> dict[str, dict[str, int]]: ...
 
     # ---- Notifications ----
     def create_notification(self, *, notification: dict) -> dict: ...
     def list_notifications(self, *, recipient_address: str, unread_only: bool = False, limit: int = 50) -> list[dict]: ...
+    def list_notifications_since(self, *, recipient_address: str, since_iso: str, limit: int = 50) -> list[dict]: ...
     def mark_notification_read(self, *, recipient_address: str, notification_id: str) -> dict | None: ...
 
     # ---- Votes ----
@@ -698,6 +702,53 @@ class InMemoryStore:
             out[tid] = {"upvotes": int(up), "bookmarks": int(bm), "views": int(vw), "comments": int(cm)}
         return out
 
+    def get_engagement_stats_batch_window(self, *, target_type: str, target_ids: list[str], since_iso: str) -> dict[str, dict[str, int]]:
+        """
+        Best-effort windowed counters used for trending.
+        since_iso: RFC3339 (Z) timestamp.
+        """
+        since = _parse_iso(str(since_iso or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+        t = str(target_type)
+        ids = [str(x) for x in (target_ids or []) if str(x)]
+        out: dict[str, dict[str, int]] = {}
+        for tid in ids:
+            up = 0
+            bm = 0
+            vw = 0
+            cm = 0
+
+            for (a, tt, i, k), created_iso in self.reactions.items():
+                if tt != t or i != tid:
+                    continue
+                dt = _parse_iso(str(created_iso or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+                if dt < since:
+                    continue
+                if k == "upvote":
+                    up += 1
+                elif k == "bookmark":
+                    bm += 1
+
+            for (a, tt, i, w), created_iso in self.view_events.items():
+                if tt != t or i != tid:
+                    continue
+                dt = _parse_iso(str(created_iso or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+                if dt < since:
+                    continue
+                vw += 1
+
+            for c in self.comments.values():
+                if c.get("target_type") != t or c.get("target_id") != tid:
+                    continue
+                if c.get("deleted_at"):
+                    continue
+                dt = _parse_iso(str(c.get("created_at") or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+                if dt < since:
+                    continue
+                cm += 1
+
+            out[tid] = {"upvotes": int(up), "bookmarks": int(bm), "views": int(vw), "comments": int(cm)}
+        return out
+
     # ---- Notifications ----
     def create_notification(self, *, notification: dict) -> dict:
         nid = str(uuid.uuid4())
@@ -716,6 +767,18 @@ class InMemoryStore:
             rows = [n for n in rows if not n.get("read_at")]
         rows.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
         return rows[: max(1, int(limit))]
+
+    def list_notifications_since(self, *, recipient_address: str, since_iso: str, limit: int = 50) -> list[dict]:
+        addr = _lower_addr(recipient_address)
+        since = _parse_iso(str(since_iso or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+        rows = [n for n in self.notifications.values() if _lower_addr(str(n.get("recipient_address") or "")) == addr]
+        out = []
+        for n in rows:
+            dt = _parse_iso(str(n.get("created_at") or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+            if dt >= since:
+                out.append(n)
+        out.sort(key=lambda r: str(r.get("created_at") or ""), reverse=True)
+        return out[: max(1, int(limit))]
 
     def mark_notification_read(self, *, recipient_address: str, notification_id: str) -> dict | None:
         addr = _lower_addr(recipient_address)
@@ -1921,6 +1984,70 @@ class PostgresStore:
 
         return out
 
+    def get_engagement_stats_batch_window(self, *, target_type: str, target_ids: list[str], since_iso: str) -> dict[str, dict[str, int]]:
+        t = str(target_type)
+        ids = [str(x) for x in (target_ids or []) if str(x)]
+        if not ids:
+            return {}
+        since = _parse_iso(str(since_iso or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+        since = _ensure_utc(since) or datetime.fromtimestamp(0, tz=timezone.utc)
+
+        out: dict[str, dict[str, int]] = {tid: {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0} for tid in ids}
+
+        with self._session() as db:
+            # Comments (exclude soft-deleted) within window
+            cq = (
+                select(CommentDB.target_id, func.count())
+                .where(
+                    CommentDB.target_type == t,
+                    CommentDB.target_id.in_(ids),
+                    CommentDB.deleted_at.is_(None),
+                    CommentDB.created_at >= since,
+                )
+                .group_by(CommentDB.target_id)
+            )
+            for target_id, cnt in db.execute(cq).all():
+                tid = str(target_id)
+                if tid in out:
+                    out[tid]["comments"] = int(cnt or 0)
+
+            # Reactions within window
+            rq = (
+                select(ReactionDB.target_id, ReactionDB.kind, func.count())
+                .where(
+                    ReactionDB.target_type == t,
+                    ReactionDB.target_id.in_(ids),
+                    ReactionDB.created_at >= since,
+                )
+                .group_by(ReactionDB.target_id, ReactionDB.kind)
+            )
+            for target_id, kind, cnt in db.execute(rq).all():
+                tid = str(target_id)
+                if tid not in out:
+                    continue
+                k = str(kind or "")
+                if k == "upvote":
+                    out[tid]["upvotes"] = int(cnt or 0)
+                elif k == "bookmark":
+                    out[tid]["bookmarks"] = int(cnt or 0)
+
+            # Views within window (events are deduped per viewer per hour)
+            vq = (
+                select(ViewEventDB.target_id, func.count())
+                .where(
+                    ViewEventDB.target_type == t,
+                    ViewEventDB.target_id.in_(ids),
+                    ViewEventDB.created_at >= since,
+                )
+                .group_by(ViewEventDB.target_id)
+            )
+            for target_id, cnt in db.execute(vq).all():
+                tid = str(target_id)
+                if tid in out:
+                    out[tid]["views"] = int(cnt or 0)
+
+        return out
+
     # ---- Notifications ----
     def _notification_to_dict(self, n: NotificationDB) -> dict:
         return {
@@ -1962,6 +2089,21 @@ class PostgresStore:
             if unread_only:
                 q = q.where(NotificationDB.read_at.is_(None))
             q = q.order_by(NotificationDB.created_at.desc()).limit(lim)
+            rows = list(db.execute(q).scalars().all())
+        return [self._notification_to_dict(r) for r in rows]
+
+    def list_notifications_since(self, *, recipient_address: str, since_iso: str, limit: int = 50) -> list[dict]:
+        addr = _lower_addr(recipient_address)
+        lim = max(1, int(limit))
+        since = _parse_iso(str(since_iso or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+        since = _ensure_utc(since) or datetime.fromtimestamp(0, tz=timezone.utc)
+        with self._session() as db:
+            q = (
+                select(NotificationDB)
+                .where(NotificationDB.recipient_address == addr, NotificationDB.created_at >= since)
+                .order_by(NotificationDB.created_at.desc())
+                .limit(lim)
+            )
             rows = list(db.execute(q).scalars().all())
         return [self._notification_to_dict(r) for r in rows]
 

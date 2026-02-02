@@ -8,6 +8,7 @@ import { DiscussionThread } from "@/components/DiscussionThread";
 import { SubmissionCard } from "./SubmissionCard";
 import { JuryVotePanel } from "./JuryVotePanel";
 import { RoleGuide } from "@/components/RoleGuide";
+import { ViewPing } from "@/components/ViewPing";
 import { addressUrl, txUrl } from "@/lib/explorers";
 import { 
   ArrowLeft, 
@@ -100,6 +101,7 @@ export default async function QuestDetailPage({ params }: { params: Promise<{ jo
   return (
     <div className="min-h-screen bg-[#0c0a09] text-slate-200 relative overflow-hidden">
       <Background />
+      <ViewPing targetType="job" targetId={jobId} />
 
       <main className="relative z-10 w-full max-w-[1400px] mx-auto px-6 py-20 border-x border-white/[0.03] min-h-screen">
         

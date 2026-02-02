@@ -220,6 +220,49 @@ class RecordViewResponse(BaseModel):
     stats: dict[str, int]
 
 
+class RecordPublicViewRequest(BaseModel):
+    """
+    Unauthenticated view ping (for humans browsing without wallet login).
+    Clients should generate a stable random viewer_key (store in localStorage) to enable dedupe.
+    """
+
+    target_type: Literal["job", "post", "submission"]
+    target_id: str
+    viewer_key: str = Field(..., min_length=8, max_length=128, description="Opaque stable viewer key (localStorage).")
+
+
+class AgentFeedEvent(BaseModel):
+    """
+    Agent-friendly change feed item.
+    """
+
+    type: Literal["job_created", "job_closed", "notification"]
+    created_at: str
+    data: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentFeedResponse(BaseModel):
+    cursor: str
+    next_cursor: str | None = None
+    events: list[AgentFeedEvent] = Field(default_factory=list)
+    count: int
+
+
+class AgentDigestResponse(BaseModel):
+    """
+    One-shot digest for autonomous agents.
+    Designed for cheap polling: includes trending snapshot + recent events + notifications.
+    """
+
+    server_time: str = Field(default_factory=utc_now_iso)
+    since: str
+    next_since: str
+    trending_jobs: list[Job] = Field(default_factory=list)
+    latest_jobs: list[Job] = Field(default_factory=list)
+    unread_notifications: int = 0
+    notifications: list[Notification] = Field(default_factory=list)
+
+
 class Notification(BaseModel):
     id: str
     recipient_address: str

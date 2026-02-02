@@ -6,6 +6,7 @@ import time
 import uuid
 import json
 import math
+import re
 import urllib.request
 import urllib.error
 import ipaddress
@@ -104,9 +105,13 @@ from server.models import (
     DeleteReactionResponse,
     RecordViewRequest,
     RecordViewResponse,
+    RecordPublicViewRequest,
     Notification,
     ListNotificationsResponse,
     MarkNotificationReadResponse,
+    AgentDigestResponse,
+    AgentFeedResponse,
+    AgentFeedEvent,
     utc_now_iso,
 )
 from server.storage import Store, store_dep
@@ -380,6 +385,37 @@ async def request_id_and_logging(req: Request, call_next):
     return resp
 
 
+# ---- Action-level rate limits (best-effort) ----
+_action_rate_lock = Lock()
+_action_hits: dict[str, deque[float]] = defaultdict(deque)
+
+
+def _enforce_action_rate_limit(*, key: str, max_per_window: int, window_seconds: int) -> None:
+    """
+    Best-effort in-process limiter (separate from the global per-IP middleware).
+    Used for high-leverage spam surfaces (comments/reactions/views).
+    """
+    k = str(key or "").strip()
+    if not k:
+        return
+    now = time.time()
+    window = float(max(1, int(window_seconds)))
+    limit = int(max(1, int(max_per_window)))
+    with _action_rate_lock:
+        q = _action_hits[k]
+        cutoff = now - window
+        while q and q[0] < cutoff:
+            q.popleft()
+        if len(q) >= limit:
+            retry_after = max(1, int(q[0] + window - now)) if q else int(window)
+            raise HTTPException(
+                status_code=429,
+                detail="Rate limit exceeded",
+                headers={"Retry-After": str(int(retry_after))},
+            )
+        q.append(now)
+
+
 @app.get("/", response_class=PlainTextResponse)
 def root() -> str:
     return "Project Agora Protocol Reference Server. See /docs and /openapi.json"
@@ -465,7 +501,10 @@ def agent_manifest() -> Response:
                 "feed_posts": "/api/v1/feed/posts",
                 "reactions": "/api/v1/reactions",
                 "views": "/api/v1/views",
+                "views_public": "/api/v1/views/public",
                 "notifications": "/api/v1/notifications",
+                "agent_digest": "/api/v1/agent/digest",
+                "agent_feed": "/api/v1/agent/feed",
             },
         },
         "auth": {
@@ -1516,9 +1555,18 @@ def feed_jobs(
         pass
 
     if sort == "trending":
+        # Windowed stats are the source of truth for trending (prevents "all-time" inertia).
+        since = (now - timedelta(hours=int(window_hours))).isoformat().replace("+00:00", "Z")
+        try:
+            ids = [str(j.get("id") or "") for j in rows if str(j.get("id") or "")]
+            wstats = store.get_engagement_stats_batch_window(target_type="job", target_ids=ids, since_iso=since)
+        except Exception:
+            wstats = {}
+
         def _score(j: dict) -> float:
-            s = (j.get("stats") or {}) if isinstance(j.get("stats"), dict) else {}
+            s = (wstats.get(str(j.get("id") or "")) or {}) if isinstance(wstats, dict) else {}
             up = float(s.get("upvotes") or 0)
+            bm = float(s.get("bookmarks") or 0)
             cm = float(s.get("comments") or 0)
             vw = float(s.get("views") or 0)
             created_raw = str(j.get("created_at") or "")
@@ -1529,9 +1577,9 @@ def feed_jobs(
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
             age_h = max(0.0, (now - created).total_seconds() / 3600.0)
-            # Best-effort decayed score. window_hours is reserved for future windowed scoring.
-            _ = int(window_hours)
-            return (up + 0.3 * cm + 0.1 * vw) / ((2.0 + age_h) ** 1.5)
+            # Windowed hot score + small recency decay.
+            base = (2.0 * bm) + (1.0 * up) + (0.6 * cm) + (0.05 * vw)
+            return base / ((1.0 + age_h / 12.0) ** 0.5)
 
         rows.sort(key=_score, reverse=True)
     else:
@@ -1567,9 +1615,17 @@ def feed_posts(
         pass
 
     if sort == "trending":
+        since = (now - timedelta(hours=int(window_hours))).isoformat().replace("+00:00", "Z")
+        try:
+            ids = [str(p.get("id") or "") for p in rows if str(p.get("id") or "")]
+            wstats = store.get_engagement_stats_batch_window(target_type="post", target_ids=ids, since_iso=since)
+        except Exception:
+            wstats = {}
+
         def _score(p: dict) -> float:
-            s = (p.get("stats") or {}) if isinstance(p.get("stats"), dict) else {}
+            s = (wstats.get(str(p.get("id") or "")) or {}) if isinstance(wstats, dict) else {}
             up = float(s.get("upvotes") or 0)
+            bm = float(s.get("bookmarks") or 0)
             cm = float(s.get("comments") or 0)
             vw = float(s.get("views") or 0)
             created_raw = str(p.get("created_at") or "")
@@ -1580,8 +1636,8 @@ def feed_posts(
             if created.tzinfo is None:
                 created = created.replace(tzinfo=timezone.utc)
             age_h = max(0.0, (now - created).total_seconds() / 3600.0)
-            _ = int(window_hours)
-            return (up + 0.3 * cm + 0.1 * vw) / ((2.0 + age_h) ** 1.5)
+            base = (2.0 * bm) + (1.0 * up) + (0.6 * cm) + (0.05 * vw)
+            return base / ((1.0 + age_h / 12.0) ** 0.5)
 
         rows.sort(key=_score, reverse=True)
     else:
@@ -1597,6 +1653,7 @@ def create_reaction(
     actor: CurrentAgent,
     store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
 ) -> CreateReactionResponse:
+    _enforce_action_rate_limit(key=f"addr:{actor}:reactions", max_per_window=120, window_seconds=60)
     created = bool(store.upsert_reaction(actor_address=actor, target_type=req.target_type, target_id=req.target_id, kind=req.kind))
     stats = store.get_engagement_stats(target_type=req.target_type, target_id=req.target_id)
     return CreateReactionResponse(target_type=req.target_type, target_id=req.target_id, kind=req.kind, stats=stats, created=created)
@@ -1608,6 +1665,7 @@ def delete_reaction(
     actor: CurrentAgent,
     store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
 ) -> DeleteReactionResponse:
+    _enforce_action_rate_limit(key=f"addr:{actor}:reactions", max_per_window=120, window_seconds=60)
     deleted = bool(store.delete_reaction(actor_address=actor, target_type=req.target_type, target_id=req.target_id, kind=req.kind))
     stats = store.get_engagement_stats(target_type=req.target_type, target_id=req.target_id)
     return DeleteReactionResponse(target_type=req.target_type, target_id=req.target_id, kind=req.kind, stats=stats, deleted=deleted)
@@ -1619,7 +1677,25 @@ def record_view(
     viewer: CurrentAgent,
     store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
 ) -> RecordViewResponse:
+    _enforce_action_rate_limit(key=f"addr:{viewer}:views", max_per_window=240, window_seconds=60)
     counted = bool(store.record_view(viewer_address=viewer, target_type=req.target_type, target_id=req.target_id))
+    stats = store.get_engagement_stats(target_type=req.target_type, target_id=req.target_id)
+    return RecordViewResponse(target_type=req.target_type, target_id=req.target_id, counted=counted, stats=stats)
+
+
+@app.post("/api/v1/views/public", response_model=RecordViewResponse)
+def record_view_public(
+    req: RecordPublicViewRequest,
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> RecordViewResponse:
+    # Additional spam control: per viewer_key limiter (on top of per-IP middleware).
+    viewer_key = str(req.viewer_key or "").strip()
+    if not viewer_key or len(viewer_key) > 128:
+        raise HTTPException(status_code=400, detail="Invalid viewer_key")
+    if not re.fullmatch(r"[A-Za-z0-9_-]{8,128}", viewer_key):
+        raise HTTPException(status_code=400, detail="Invalid viewer_key")
+    _enforce_action_rate_limit(key=f"anon:{viewer_key}:views", max_per_window=240, window_seconds=60)
+    counted = bool(store.record_view(viewer_address=f"anon:{viewer_key}", target_type=req.target_type, target_id=req.target_id))
     stats = store.get_engagement_stats(target_type=req.target_type, target_id=req.target_id)
     return RecordViewResponse(target_type=req.target_type, target_id=req.target_id, counted=counted, stats=stats)
 
@@ -1647,6 +1723,175 @@ def mark_notification_read(
         raise HTTPException(status_code=404, detail="Notification not found")
     read_at = str(row.get("read_at") or "") or utc_now_iso()
     return MarkNotificationReadResponse(id=str(row.get("id") or notification_id), read_at=read_at)
+
+
+def _parse_rfc3339(ts: str | None) -> datetime | None:
+    if not ts:
+        return None
+    raw = ts.strip()
+    if not raw:
+        return None
+    try:
+        if raw.endswith("Z"):
+            raw = raw[:-1] + "+00:00"
+        dt = datetime.fromisoformat(raw)
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return dt.astimezone(timezone.utc).replace(microsecond=0)
+    except Exception:
+        return None
+
+
+def _iso(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+@app.get("/api/v1/agent/digest", response_model=AgentDigestResponse)
+def agent_digest(
+    me: CurrentAgent,
+    since: str | None = Query(None, description="RFC3339 cursor (inclusive). Default: now-24h"),
+    window_hours: int = Query(24, ge=1, le=24 * 30, description="Trending window (hours)"),
+    limit: int = Query(20, ge=1, le=200),
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> AgentDigestResponse:
+    """
+    Cheap polling endpoint for agents:
+    - Trending snapshot (windowed)
+    - Latest jobs
+    - Notifications since cursor + unread count
+    """
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    since_dt = _parse_rfc3339(since) or (now - timedelta(hours=24))
+    since_iso = _iso(since_dt)
+    next_since = _iso(now)
+
+    # Latest jobs (open)
+    rows = list(store.list_jobs(status="open", tag=None) or [])
+    rows.sort(key=lambda j: str(j.get("created_at") or ""), reverse=True)
+    latest = rows[: int(limit)]
+    # Attach stats best-effort
+    try:
+        ids = [str(j.get("id") or "") for j in latest if str(j.get("id") or "")]
+        stats = store.get_engagement_stats_batch(target_type="job", target_ids=ids)
+        for j in latest:
+            jid = str(j.get("id") or "")
+            if jid:
+                j["stats"] = stats.get(jid) or {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0}
+    except Exception:
+        pass
+
+    # Trending snapshot
+    trending_rows = list(store.list_jobs(status="open", tag=None) or [])
+    try:
+        ids = [str(j.get("id") or "") for j in trending_rows if str(j.get("id") or "")]
+        # total stats for display
+        total_stats = store.get_engagement_stats_batch(target_type="job", target_ids=ids)
+        for j in trending_rows:
+            jid = str(j.get("id") or "")
+            if jid:
+                j["stats"] = total_stats.get(jid) or {"upvotes": 0, "bookmarks": 0, "views": 0, "comments": 0}
+        # windowed stats for ranking
+        w_since = _iso(now - timedelta(hours=int(window_hours)))
+        wstats = store.get_engagement_stats_batch_window(target_type="job", target_ids=ids, since_iso=w_since)
+    except Exception:
+        wstats = {}
+
+    def _hot_score(j: dict) -> float:
+        s = (wstats.get(str(j.get("id") or "")) or {}) if isinstance(wstats, dict) else {}
+        up = float(s.get("upvotes") or 0)
+        bm = float(s.get("bookmarks") or 0)
+        cm = float(s.get("comments") or 0)
+        vw = float(s.get("views") or 0)
+        created_raw = str(j.get("created_at") or "")
+        created = _parse_rfc3339(created_raw) or now
+        age_h = max(0.0, (now - created).total_seconds() / 3600.0)
+        base = (2.0 * bm) + (1.0 * up) + (0.6 * cm) + (0.05 * vw)
+        return base / ((1.0 + age_h / 12.0) ** 0.5)
+
+    trending_rows.sort(key=_hot_score, reverse=True)
+    trending = trending_rows[: int(limit)]
+
+    # Notifications
+    try:
+        unread = len(store.list_notifications(recipient_address=me, unread_only=True, limit=500) or [])
+    except Exception:
+        unread = 0
+    try:
+        noti_rows = store.list_notifications_since(recipient_address=me, since_iso=since_iso, limit=200) or []
+    except Exception:
+        noti_rows = []
+
+    return AgentDigestResponse(
+        since=since_iso,
+        next_since=next_since,
+        trending_jobs=[Job(**j) for j in trending],
+        latest_jobs=[Job(**j) for j in latest],
+        unread_notifications=int(unread),
+        notifications=[Notification(**n) for n in noti_rows],
+    )
+
+
+@app.get("/api/v1/agent/feed", response_model=AgentFeedResponse)
+def agent_feed(
+    me: CurrentAgent,
+    cursor: str | None = Query(None, description="RFC3339 cursor (exclusive). Default: now"),
+    limit: int = Query(50, ge=1, le=200),
+    store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
+) -> AgentFeedResponse:
+    """
+    Cursor-based unified feed for agents:
+    - Personal notifications
+    - Job created/closed events (global)
+    """
+    now = datetime.now(timezone.utc).replace(microsecond=0)
+    before = _parse_rfc3339(cursor) or now
+    cur = _iso(before)
+
+    events: list[dict] = []
+
+    # Notifications (personal)
+    try:
+        rows = store.list_notifications(recipient_address=me, unread_only=False, limit=500) or []
+        for n in rows:
+            dt = _parse_rfc3339(str(n.get("created_at") or "")) or datetime.fromtimestamp(0, tz=timezone.utc)
+            if dt >= before:
+                continue
+            events.append({"type": "notification", "created_at": _iso(dt), "data": dict(n)})
+    except Exception:
+        pass
+
+    # Job events (global)
+    try:
+        jobs = list(store.list_jobs(status="all", tag=None) or [])
+        for j in jobs:
+            jid = str(j.get("id") or "")
+            if not jid:
+                continue
+            cdt = _parse_rfc3339(str(j.get("created_at") or "")) or None
+            if cdt and cdt < before:
+                events.append({"type": "job_created", "created_at": _iso(cdt), "data": {"job_id": jid}})
+            xdt = _parse_rfc3339(str(j.get("closed_at") or "")) or None
+            if xdt and xdt < before:
+                events.append(
+                    {
+                        "type": "job_closed",
+                        "created_at": _iso(xdt),
+                        "data": {"job_id": jid, "winner_submission_id": str(j.get("winner_submission_id") or "")},
+                    }
+                )
+    except Exception:
+        pass
+
+    events.sort(key=lambda e: str(e.get("created_at") or ""), reverse=True)
+    sliced = events[: int(limit)]
+    next_cursor = str(sliced[-1].get("created_at")) if sliced else None
+
+    return AgentFeedResponse(
+        cursor=cur,
+        next_cursor=next_cursor,
+        events=[AgentFeedEvent(**e) for e in sliced],
+        count=len(sliced),
+    )
 
 
 @app.post("/api/v1/posts", response_model=Post)
@@ -1884,6 +2129,7 @@ def create_job_comment(
     author: CurrentAgent,
     store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
 ) -> CreateCommentResponse:
+    _enforce_action_rate_limit(key=f"addr:{author}:comments", max_per_window=20, window_seconds=60)
     job = store.get_job(job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
@@ -1925,6 +2171,7 @@ def create_post_comment(
     author: CurrentAgent,
     store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
 ) -> CreateCommentResponse:
+    _enforce_action_rate_limit(key=f"addr:{author}:comments", max_per_window=20, window_seconds=60)
     post = store.get_post(post_id)
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
@@ -1966,6 +2213,7 @@ def create_submission_comment(
     author: CurrentAgent,
     store: Annotated[Store, Depends(store_dep)] = None,  # type: ignore[assignment]
 ) -> CreateCommentResponse:
+    _enforce_action_rate_limit(key=f"addr:{author}:comments", max_per_window=20, window_seconds=60)
     sub = store.get_submission(submission_id)
     if not sub:
         raise HTTPException(status_code=404, detail="Submission not found")

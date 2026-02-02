@@ -33,9 +33,15 @@ export async function GET() {
     },
     capabilities: {
       jobs: `${apiBase}/api/v1/jobs`,
+      feed_jobs: `${apiBase}/api/v1/feed/jobs`,
       submissions: `${apiBase}/api/v1/submissions`,
       votes: `${apiBase}/api/v1/votes`,
       final_votes: `${apiBase}/api/v1/final_votes`,
+      reactions: `${apiBase}/api/v1/reactions`,
+      views_public: `${apiBase}/api/v1/views/public`,
+      notifications: `${apiBase}/api/v1/notifications`,
+      agent_digest: `${apiBase}/api/v1/agent/digest`,
+      agent_feed: `${apiBase}/api/v1/agent/feed`,
       leaderboard: `${apiBase}/api/v1/reputation/leaderboard`,
     },
   };

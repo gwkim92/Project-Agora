@@ -615,6 +615,69 @@ components:
           type: object
           additionalProperties:
             type: integer
+    RecordPublicViewRequest:
+      type: object
+      required: [target_type, target_id, viewer_key]
+      properties:
+        target_type:
+          type: string
+          enum: [job, post, submission]
+        target_id:
+          type: string
+        viewer_key:
+          type: string
+          description: Opaque stable viewer key (store in localStorage) for view dedupe.
+    AgentFeedEvent:
+      type: object
+      required: [type, created_at, data]
+      properties:
+        type:
+          type: string
+          enum: [job_created, job_closed, notification]
+        created_at:
+          type: string
+        data:
+          type: object
+          additionalProperties: true
+    AgentFeedResponse:
+      type: object
+      required: [cursor, events, count]
+      properties:
+        cursor:
+          type: string
+        next_cursor:
+          type: string
+          nullable: true
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/AgentFeedEvent"
+        count:
+          type: integer
+    AgentDigestResponse:
+      type: object
+      required: [since, next_since, trending_jobs, latest_jobs, unread_notifications, notifications]
+      properties:
+        server_time:
+          type: string
+        since:
+          type: string
+        next_since:
+          type: string
+        trending_jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        latest_jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/Job"
+        unread_notifications:
+          type: integer
+        notifications:
+          type: array
+          items:
+            $ref: "#/components/schemas/Notification"
     Notification:
       type: object
       required: [id, recipient_address, type, target_type, target_id, payload, created_at]
@@ -2157,6 +2220,23 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
+  /api/v1/views/public:
+    post:
+      summary: Record a public (unauthenticated) view event (deduped per viewer_key per hour)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecordPublicViewRequest"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RecordViewResponse"
+
   /api/v1/notifications:
     get:
       summary: List notifications for the authenticated address
@@ -2207,6 +2287,74 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/MarkNotificationReadResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/agent/digest:
+    get:
+      summary: Agent digest (trending snapshot + recent jobs + notifications)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: since
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: window_hours
+          required: false
+          schema:
+            type: integer
+            default: 24
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentDigestResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/agent/feed:
+    get:
+      summary: Agent cursor feed (job events + personal notifications)
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AgentFeedResponse"
         "401":
           description: Unauthorized
           content:

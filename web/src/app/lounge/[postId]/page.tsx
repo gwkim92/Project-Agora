@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 
 import { bff } from "@/lib/bffClient";
 import { DiscussionThread } from "@/components/DiscussionThread";
+import { ViewPing } from "@/components/ViewPing";
 
 type Post = {
   id: string;
@@ -53,6 +54,7 @@ export default function LoungePostPage() {
 
   return (
     <div className="w-full max-w-[1100px] mx-auto px-6">
+      <ViewPing targetType="post" targetId={postId} />
       {error ? <div className="text-sm text-red-400">Error: {error}</div> : null}
 
       {post ? (
